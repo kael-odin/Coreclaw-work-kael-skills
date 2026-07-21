@@ -21,7 +21,7 @@ claude plugin install kael-skills@coreclaw-work-kael-skills
 
 | Skill | 做什么 | 关键来源 |
 |-------|--------|----------|
-| `script-audit` | CoreClaw worker 五层审核：静态规则（error/warn）、经 API/MCP 实跑验证输入输出、输出正确性、改进建议（concurrency.fields 调吞吐/控成本）。规则集源自 `Core-Claw/coreclaw-cli` 的 audit skill 并保持同步。 | `Core-Claw/coreclaw-cli` audit skill · 平台 API 文档 · 平台文档 |
+| `script-audit` | CoreClaw worker 五层审核：静态规则（error/warn，137 条规则 R001-R337 已从 `Core-Claw/coreclaw-cli` 的 audit skill 100% 独立吸收为内置引擎）、经 API/MCP 实跑验证输入输出、输出正确性、改进建议（concurrency.fields 调吞吐/控成本）。 | 吸收自 `Core-Claw/coreclaw-cli` audit skill · `Core-Claw/scraper-webui-docs` 开发者契约 · 平台文档 |
 | `readme-writer` | 为 CoreClaw worker 撰写中英双语 README，基于脚本真实爬取逻辑/输入输出字段/能力范围，不编造信息与链接，输入示例完整可跑、输出示例真实。先生成产品化标题+描述+meta（中英各一份）再撰写并做 SEO 优化。 | 已发布 Google Maps Scraper 双语 README 模板 · 平台文档 |
 
 后面还会加：worker 开发打包、worker-tasks CRUD 验收、三仓库 enum 同步、上游变更 triage。都会加到同一个 `kael-skills` plugin 里。

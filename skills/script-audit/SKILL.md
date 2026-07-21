@@ -6,29 +6,26 @@ description: >
 
 # Script Audit（CoreClaw Worker 脚本审核）
 
-对一个 CoreClaw worker 脚本做五层审核，按严重度排列发现，每条附来源指针。静态规则集**不在本 skill 里重写**——它源自 `Core-Claw/coreclaw-cli` 仓库的 `coreclaw-cli-audit` skill 并保持同步。本 skill 补 CLI 审计不覆盖的层：输入输出的实跑 API/MCP 验证、输出正确性、改进建议（并发、吞吐、成本）。
+对一个 CoreClaw worker 脚本做五层审核，按严重度排列发现，每条附来源指针。第 1 层静态规则集**已从 `Core-Claw/coreclaw-cli` 的 audit skill 100% 独立吸收**为本 skill 内置引擎（137 条规则 R001-R337，见 `references/contract-checklist.md`），不重新发明。第 2-4 层是本 skill 独有的扩展：输入输出实跑 API/MCP 验证、输出正确性、改进建议（并发、吞吐、成本）。
 
 ## 知识来源（均不依赖本地路径）
 
-- **权威规则源**（worker 开发契约的真正依据）：
-  GitHub 仓库 `Core-Claw/scraper-webui-docs` → `src/content/docs/developer-guide/`（英文）与 `src/content/docs/zh-cn/developer-guide/`（中文）。线上即 https://docs.coreclaw.com/developer-guide 与 https://docs.coreclaw.com/zh-cn/developer-guide 。关键文档：
-  - `worker-definition/input-schema.md` — 输入字段、editor、类型、并发配置契约
-  - `worker-definition/output-schema.md` — 输出列契约
-  - `worker-definition/project-structure.md` — 项目结构与必填文件
-  - `worker-definition/sdk-modules.md` — SDK 模块
-  - `worker-definition/browser-automation/*.md` — Camoufox/Playwright/Puppeteer/Selenium/DrissionPage/Lightpanda 各浏览器的版本 pin 与代理契约
-  - `worker-definition/platform-features/proxy-support.md`、`captcha-handling.md`、`browser-fingerprinting.md`
-  - `test-your-worker.md`、`builds-and-runs.md`、`deployment.md`
-  - `publishing-and-monetization/*.md`
-  审核时规则从这里来；遇到分歧以本仓库文档为准。
-- **`coreclaw-cli` 的 audit skill**（`Core-Claw/coreclaw-cli` → `skills/coreclaw-cli-audit/`）：CLI 自身的规则引擎，**目前尚不完善**，是开发者契约的部分提炼而非全集。可作辅助参考（规则码、`diff-contract.cjs` 自动比对、`concurrency-rules.md` 并发摘要），但**权威性低于 scraper-webui-docs**。后续方向是把开发者内容从 scraper-webui-docs 进一步炼化进 CLI 的 skill 与本 skill。
+- **内置规则引擎**（第 1 层静态规则的来源，已 100% 吸收）：
+  原源自 `Core-Claw/coreclaw-cli` 的 `skills/coreclaw-cli-audit/`，现完整并入本 skill：
+  - `references/contract-checklist.md` — 137 条规则清单 R001-R337，每条带验证状态 + severity + 出处（input-schema / output-schema / project-structure / sdk-modules / platform-features / concurrency-rules / API v2 契约）
+  - `references/known-gaps.md` — 已解决 + 待查缺口，含完整修复历史与平台实测探针结果（code 4000 推翻、unsupported editor 升 error、concurrency 非数组降 warn 等）
+  - `references/concurrency-rules.md` — 平台任务拆分规则事实（决策顺序、活跃字段选择、元素类型矩阵、limits 预扣费算法）
+  - `scripts/diff-contract.cjs` — 自动比对脚本（validation 调用统计 + checklist 覆盖率 + API operationId 覆盖率）
+  这些是审核时的规则权威，引用规则码（如 R211 Camoufox playwright pin、R212 upsert key、R215 硬编码代理凭证）。
+- **权威契约源**（规则集本身的依据，审核分歧时以这里为准）：
+  GitHub 仓库 `Core-Claw/scraper-webui-docs` → `src/content/docs/developer-guide/`（英文）与 `src/content/docs/zh-cn/developer-guide/`（中文）。线上即 https://docs.coreclaw.com/developer-guide 与 https://docs.coreclaw.com/zh-cn/developer-guide 。规则集持续从此提炼，后续可基于此仓库 + 更多内容优化本 skill。
 - **平台官方文档**：
   - 中文：https://docs.coreclaw.com/zh-cn/ · API https://docs.coreclaw.com/zh-cn/api/
   - 英文：https://docs.coreclaw.com/ · API https://docs.coreclaw.com/api/
   - MCP：https://docs.coreclaw.com/zh-cn/integrations/ai/mcp · EN https://docs.coreclaw.com/integrations/ai/mcp
   - 价格：https://www.coreclaw.com/pricing
 - **上游 API 契约**：平台 API 文档（https://docs.coreclaw.com/api/）的 OpenAPI 契约，37 个 operation，全部 `/api/v2`，Bearer 鉴权。base URL `https://openapi.coreclaw.com`。
-- 本 skill 参考文档：`references/verification-protocol.md`、`references/concurrency-suggestions.md`、`references/sync-procedure.md`
+- 本 skill 其它参考文档：`references/verification-protocol.md`（第 2-3 层实跑协议）、`references/concurrency-suggestions.md`（第 4 层改进建议）、`references/sync-procedure.md`（与上游同步流程）
 
 ## 审核对象
 
@@ -38,27 +35,32 @@ description: >
 - `main.py` / `index.js` — 采集逻辑
 - `README.md` / `README_CN.md` — 输入文档（与实际字段交叉校验）
 
-它**不审 CLI 自身的校验代码**（那是 `coreclaw-cli-audit` 的职责）。两者互补：CLI 审计保证规则引擎正确；本 skill 把引擎应用到具体 worker，并加实跑验证 + 建议。
-
 ## 五层审核
 
 ### 第 1 层 — 静态规则（error / warn）
 
-用 CLI 的 validator 跑 worker（若已打包），或对照 scraper-webui-docs 的开发者契约手工核对。规则的权威依据是 `Core-Claw/scraper-webui-docs` 的 `developer-guide/`；CLI 的 audit skill 是其部分提炼，可作辅助但权威性低于文档。**不在本 skill 重定义规则**——引用文档路径或 CLI 规则码。
+用内置规则集核对。两种方式：
+- **手工核对**：逐条对照 `references/contract-checklist.md` 的 R001-R337 与 worker 的 schema/代码。
+- **自动核对**（worker 已打包时）：clone `Core-Claw/coreclaw-cli` 到任意目录，跑其 validator 与本 skill 吸收的 diff-contract 脚本。
 
-severity 政策（基于开发者契约 + 已实测行为）：
-- `error` = 平台上传/运行时硬拒、表单不渲染、或正确性/安全缺陷。缺 `output_schema.json`、硬编码代理凭证、Camoufox 未 pin `playwright==1.49.1`、upsert key 不在 output_schema、未知 editor 值、HTTP 脚本不读代理、v2 调用用 `api-key` header。
-- `warn` = 平台接受但表单/运行可能异常，或文档 should/约定。editor/type 不匹配（2026-07-13 实测平台接受）、axios+socks 未设 `proxy:false`、header 晚于 push、缺 README、缺文档标必填的 title/editor/description/required。
+**不在本 skill 重定义规则**——引用规则码 R###。severity 政策见 `references/known-gaps.md` 末尾「Severity Guidelines」与 `contract-checklist.md` 每行的括注。
 
-**铁律：任何 `error` 必须有真实探针（`examples/verify-*`）或开发者契约明文支撑，或结构性显而易见（缺必填文件、硬编码凭证字面量）。不得仅凭文档"must"定 `error`。** 2026-06-17 的"code 4000"事件——凭文档假设编造错误码，被 2026-07-13 探针推翻——是前车之鉴。
+severity 要点（基于开发者契约 + 已实测行为）：
+- `error` = 平台上传/运行时硬拒、表单不渲染、或正确性/安全缺陷。缺 `output_schema.json`（R216）、硬编码代理凭证（R215）、Camoufox 未 pin `playwright==1.49.1`（R211）、upsert key 不在 output_schema（R212）、未知 editor 值表单不渲染（R015）、HTTP 脚本不读代理（R150）、v2 调用用 `api-key` header。
+- `warn` = 平台接受但表单/运行可能异常，或文档 should/约定。editor/type 不匹配（R016，2026-07-13 实测平台接受）、axios+socks 未设 `proxy:false`（R214）、header 晚于 push（R213）、缺 README（R083）、缺文档标必填的 title/editor/description/required（R014a-d）。
 
-worker 已打包时可跑 CLI validator（辅助工具，非权威）：
+**铁律（来自吸收的规则集）：任何 `error` 必须有真实探针（`examples/verify-*`）或开发者契约明文支撑，或结构性显而易见（缺必填文件、硬编码凭证字面量）。不得仅凭文档"must"定 `error`。** 2026-06-17 的"code 4000"事件——凭文档假设编造错误码，被 2026-07-13 探针推翻——是前车之鉴（详见 `references/known-gaps.md`）。
+
+自动核对（须在 coreclaw-cli 仓库目录内运行，因 diff-contract 扫描其 `src/validation/`）：
 ```bash
 git clone https://github.com/Core-Claw/coreclaw-cli.git
 cd coreclaw-cli
+# 把本 skill 吸收的 diff-contract.cjs 放到 skills/coreclaw-cli-audit/scripts/ 后运行，
+# 或直接用 coreclaw-cli 仓库自带的同名脚本：
 node src/cli.js validate <你的worker项目路径>
-node skills/coreclaw-cli-audit/scripts/diff-contract.cjs   # 规则 + API operation 覆盖率（辅助）
+node skills/coreclaw-cli-audit/scripts/diff-contract.cjs   # 规则 + API operation 覆盖率
 ```
+
 
 ### 第 2 层 — 实跑验证输入（API / MCP）
 
@@ -130,8 +132,8 @@ REST 兜底（MCP 不可用）：base URL `https://openapi.coreclaw.com`，`Auth
 
 ## 保持规则集同步
 
-权威源 `Core-Claw/scraper-webui-docs`（开发者契约文档）持续更新；CLI 的 audit skill 也迭代中（近期加 `hardcoded_api_key`、`aiohttp_without_proxy`、`asyncio_run_with_sdk` 等规则，但尚不完善）。正式审核前拉最新并 diff，以 scraper-webui-docs 为准。流程见 `references/sync-procedure.md`。
+本 skill 内置的规则集（contract-checklist / known-gaps / concurrency-rules）100% 吸收自 `Core-Claw/coreclaw-cli` 的 audit skill，其依据是 `Core-Claw/scraper-webui-docs` 开发者契约。两个上游都持续更新（CLI 近期加 `hardcoded_api_key`、`aiohttp_without_proxy`、`asyncio_run_with_sdk` 等规则）。正式审核前拉最新并 diff。流程见 `references/sync-procedure.md`。
 
 ## 时效性
 
-开发者契约反映 `Core-Claw/scraper-webui-docs` 截至 2026-07-21 的状态；CLI audit skill 反映 `coreclaw-cli` commit `cd48129`（辅助，非权威）。待审核版本不可经 API/MCP 实跑（见第 2 层）。上游会漂——依赖规则前先同步，依赖 `error` claim 前先重跑探针或确认开发者契约明文。
+内置规则集反映 `Core-Claw/coreclaw-cli` commit `cd48129`（2026-07-21 吸收），其依据 `Core-Claw/scraper-webui-docs` 同期状态。待审核版本不可经 API/MCP 实跑（见第 2 层）。上游会漂——依赖规则前先同步，依赖 `error` claim 前先重跑探针或确认开发者契约明文。
