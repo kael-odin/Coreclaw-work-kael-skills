@@ -1,9 +1,0 @@
-{
-  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
-  "name": "markdown-seo",
-  "description": "Write and SEO-optimize Markdown for CoreClaw content repos — READMEs, docs, guides. Not visual beautification.",
-  "author": {
-    "name": "kael-odin",
-    "url": "https://github.com/kael-odin"
-  }
-}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "kael-skills",
+  "description": "Kael's CoreClaw work skills: script-audit (worker audit, API/MCP-verified) and readme-writer (bilingual worker READMEs). All skills live under skills/.",
+  "author": {
+    "name": "kael-odin",
+    "url": "https://github.com/kael-odin"
+  }
+}

@@ -1,9 +1,0 @@
-{
-  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
-  "name": "script-audit",
-  "description": "Full-stack audit of a CoreClaw work script: correctness, security, convention, and known-pitfall checklist.",
-  "author": {
-    "name": "kael-odin",
-    "url": "https://github.com/kael-odin"
-  }
-}

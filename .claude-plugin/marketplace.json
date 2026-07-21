@@ -1,9 +1,8 @@
 {
   "name": "coreclaw-work-kael-skills",
-  "description": "Kael's personal Claude Code skills for CoreClaw work — script audit, markdown+SEO, and more. Sources-backed, evidence-pointed.",
+  "description": "Kael's personal Claude Code skills for CoreClaw work — script audit, README writer, and more. Sources-backed, evidence-pointed, synced from Core-Claw/coreclaw-cli.",
   "owner": { "name": "kael-odin" },
   "plugins": [
-    { "name": "script-audit", "source": "./skills/script-audit" },
-    { "name": "markdown-seo", "source": "./skills/markdown-seo" }
+    { "name": "kael-skills", "source": "./" }
   ]
 }
