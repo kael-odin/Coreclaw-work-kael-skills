@@ -1,116 +1,89 @@
-# Grounding Rules — No Fabrication
+# Grounding 规则 — 不编造
 
-The README must be a faithful description of the actual script. These rules
-make "no fabrication" operational.
+README 必须忠实描述实际脚本。这些规则把"不编造"变成可操作条款。
 
-## Rule 1 — Read before writing
+## 规则 1 — 先读再写
 
-Read all of these before writing any prose:
-- `input_schema.json` — field names, types, editors, required, defaults, enums
-- `output_schema.json` — every output column
-- `main.py` / `index.js` — scraping logic, hard caps, enhancement toggles,
-  concurrency config
-- any existing partial README — extract verifiable facts, discard claims
-  you can't confirm from the code
+动笔前必读：
+- `input_schema.json` — 字段名、类型、editor、required、default、enum
+- `output_schema.json` — 每个输出列
+- `main.py` / `index.js` — 爬取逻辑、硬性上限、增强开关、并发配置
+- 已有的部分 README（若有）——只取可验证事实，丢弃无法从代码确认的声明
 
-If any file is missing or unreadable, stop and say so. Do not write a README
-from assumption.
+任何文件缺失或不可读 → 停下并说明，不要凭假设写。
 
-## Rule 2 — Field name fidelity
+## 规则 2 — 字段名忠实
 
-Every field name in the README (input or output) must exist verbatim in the
-schema JSON. Field names are case-sensitive. `place_categories` in the schema
-must appear as `place_categories` in the README, never `placeCategories` or
-`Place Categories`.
+README 里每个字段名（输入或输出）必须与 schema JSON 逐字一致。大小写敏感。schema 里是 `place_categories`，README 里就必须是 `place_categories`，不能写成 `placeCategories` 或 `Place Categories`。
 
-In running text, Markdown may render `place_categories` with backticks; in
-JSON examples, use the exact key.
+正文里可用反引号包裹 `place_categories`；JSON 示例里用精确键名。
 
-## Rule 3 — Capability claims must cite the code
+## 规则 3 — 能力 claim 须引代码
 
-Any claim like "up to 300 results per URL" or "bypasses the 120-place cap"
-must trace to a line in the script or a platform doc. If the script enforces
-no such cap, don't invent one. If the platform's hard cap is documented,
-link the doc and quote the number.
+任何"每个 URL 最多 300 条""突破 120 条上限"之类 claim，必须能追到脚本某行或平台文档。脚本没设上限就别编一个。平台硬性上限若有文档依据，引用文档并照抄数字。
 
-When unsure, hedge honestly: "supports a large number of categories" rather
-than fabricating "supports up to 100 categories" — unless the script or a doc
-says 100.
+不确定就诚实模糊："支持大量类别"，而不是编造"支持最多 100 个类别"——除非脚本或文档真说了 100。
 
-## Rule 4 — Links: real or none
+## 规则 4 — 链接：真实或没有
 
-Allowed links:
-- Platform docs (the canonical URLs in SKILL.md Sources)
-- Official upstream APIs the script wraps, when the link is canonical and
-  stable (e.g. Google Places API docs)
-- Repo-internal assets (`![view](assets/view.png)`)
-- Repo-internal anchors (relative `#section`)
+**允许**的链接：
+- 平台官方 URL（SKILL.md Sources 里列出的）
+- 脚本真实封装的官方上游 API，且链接为稳定官方页（如 Google Places API 文档、Google 服务条款页）
+- 仓库内资产（`![view](assets/view.png)`）
+- 仓库内锚点（相对 `#section`）
 
-Forbidden:
-- Invented `https://example.org/some-page` that you haven't verified resolves
-- Demo / playground URLs unless the repo actually deploys one
-- Issue-tracker links unless the repo has issues enabled and you know the URL
-- OSS image URLs unless they're from a real, existing CoreClaw asset path
+**禁止**：
+- 编造的 `https://example.org/some-page`（未验证可解析）
+- demo/playground URL（除非仓库真部署了一个且你知道地址）
+- issue tracker 链接（除非仓库开了 issue 且你知道 URL）
+- OSS 图片 URL（除非是真实存在的 CoreClaw 资产路径）
 
-If you need a placeholder, omit the link. A bare description is better than a
-broken URL.
+要占位就别加链接。裸描述好过坏 URL。
 
-## Rule 5 — Input examples are complete and runnable
+## 规则 5 — 输入示例完整可跑
 
-An input example is a full JSON object the user can paste into the run input
-and get a successful run. It includes:
-- every required field, with a real value
-- optional fields shown when they illustrate a format
-- the exact nesting (top-level vs under `input` vs `parameters.custom` —
-  match the platform's actual run shape)
+输入示例是用户能直接粘贴到运行输入并获得成功运行的完整 JSON 对象。须含：
+- 所有必填字段，带真实值
+- 选填字段在需要展示格式时给出
+- 精确嵌套（顶层 vs 在 `input` 下 vs 在 `parameters.custom` 下——匹配平台真实运行形态）
 
-Never show a fragment like `{"keyword": "pizza"}` if the script also requires
-`base_location`. Show both.
+平台 v2 运行接口：`POST /api/v2/workers/{workerId}/runs`，scraper 输入放在 `input.parameters.custom`。README 的"输入示例"展示给用户看的是 `input.parameters.custom` 的内容（或等价的 schema 视图），要标注清楚层级。
 
-For array inputs, show a 2-3 element array so the format is unambiguous.
+绝不显示残缺片段如 `{"keyword": "pizza"}`（若脚本还要求 `base_location`）。两者都要给。数组字段给 2-3 个元素，格式无歧义。
 
-## Rule 6 — Output examples are real-shaped
+## 规则 6 — 输出示例真实
 
-The output JSON example must:
-- be an array (the platform returns result rows as an array)
-- contain every `output_schema.json` column as a key
-- use realistic values: reserved domains (`example.com`,
-  `example-dental.test`), placeholder phones (`+1 512-555-0101`), plausible
-  numbers (`review_count: 842`, not `999999`)
-- show nullable/empty fields honestly (`email_2: ""`, `email_2_status: ""`)
-  — don't trim them, they teach the user what to expect
+输出 JSON 示例必须：
+- 是数组（平台返回结果行为数组）
+- 含 `output_schema.json` 的每个列作为键
+- 用真实值：保留域名（`example.com`、`example-dental.test`）、占位电话（`+1 512-555-0101`）、合理数字（`review_count: 842`，不要 `999999`）
+- 诚实展示可空字段（`email_2: ""`、`email_2_status: ""`）——别裁掉，它们教会用户预期什么
 
-This is the most-copied block in any worker README. Getting it wrong means
-every downstream user's parser breaks.
+这是 worker README 里被复制最多的块。写错意味着每个下游用户的解析器都会坏。
 
-## Rule 7 — Enhancement toggles match the script
+## 规则 7 — 增强开关与脚本一致
 
-If the script has enhancement toggles (contact enrichment, email
-verification, reviews, etc.), document each with its default (on/off), what
-it costs (free add-on vs runtime), and what it returns. Don't invent
-toggles the script doesn't have. Don't omit toggles it does have.
+脚本有增强开关（联系信息增强、邮箱验证、评论等）时，逐个文档化：default（开/关）、成本（免费增强 vs 运行时成本）、返回什么。不编脚本没有的开关，也不漏脚本有的开关。
 
-## Rule 8 — Honest capability range
+## 规则 8 — 诚实能力范围
 
-State what the script does NOT do, when it matters. "Does not support
-historic Popular Times" or "reviews are capped at N per place" — grounded in
-the code. Honesty here prevents support tickets and bad reviews.
+该说脚本不能做什么时就说。基于代码说明"不支持历史热门时段""评论每地上限 N 条"。诚实能防 support 工单和差评。
 
-## Grounding sheet template
+## Grounding sheet 模板
 
-Before writing, fill this (inline notes, not a deliverable):
+动笔前填这张（内联笔记，非交付物）：
 
 ```
-scraping_logic: <source hit, query shape, per-request limit, platform cap>
-input_fields:
-  - name: keyword, type: string, editor: text, required: yes, default: "", enum: []
+爬取逻辑: <打哪个源、查询形态、单次请求上限、平台硬性上限>
+输入字段:
+  - name: keyword, type: string, editor: text, required: 是, default: "", enum: []
   - name: base_location, type: string, ...
   - name: place_categories, type: array, ...
-output_fields: <every output_schema column + type>
-enhancement_toggles:
-  - name: <toggle>, default: on, cost: free/runtime, returns: <fields>
-concurrency: fields=[], remove_fields=[], limits=[], legacy_b=
-hard_caps: <e.g. 120 places per area, 300 per URL> — source: <code line or doc>
+输出字段: <每个 output_schema 列 + 类型>
+增强开关:
+  - name: <开关>, default: on, cost: 免费/运行时, returns: <字段>
+并发: fields=[], remove_fields=[], limits=[], legacy_b=
+硬性上限: <如每区域 120 条、每 URL 300 条> — 来源: <代码行或文档>
 ```
 
-Every README claim should be traceable to a line in this sheet.
+README 每个 claim 都应能追到这张表某行。

@@ -1,55 +1,45 @@
-# Concurrency Suggestions — Improvement Layer
+# 并发建议 — 改进层
 
-The richest improvement vein for CoreClaw workers. Source: `coreclaw-cli-audit/references/concurrency-rules.md`
-(2026-07 platform HTML). This file turns those rules into audit suggestions.
+CoreClaw worker 最富矿的改进方向。来源：`coreclaw-cli-audit/references/concurrency-rules.md`（2026-07 平台 HTML）。本文件把规则转成审核建议。
 
-## Decision order (platform runtime)
+> 规则集从 `Core-Claw/coreclaw-cli` 仓库同步，本 skill 不依赖本地路径。
+
+## 决策顺序（平台运行时）
 
 ```
-1. concurrency.fields non-empty  → split by fields (new rules)
-2. else b non-empty              → split by b (legacy)
-3. else                          → whole custom object = single task
-4. both present                  → fields wins, b ignored
+1. concurrency.fields 非空  → 按 fields 拆（新规则）
+2. 否则 b 非空              → 按 b 拆（legacy）
+3. 否则                      → 整个 custom 对象 = 单任务
+4. 两者都在                  → fields 优先，b 被忽略
 ```
 
-A worker with an array input but NO `concurrency.fields` and NO `b` runs as a
-**single task** — the whole input serially. That is the #1 throughput miss.
+有数组输入但**无** `concurrency.fields` 且**无** `b` 的 worker 按**单任务**跑——整个输入串行。这是吞吐损失之首。
 
-## Suggestion matrix
+## 建议矩阵
 
-### S-THROUGHPUT — array input without concurrency.fields
+### S-THROUGHPUT — 数组输入无 concurrency.fields
 
-**Detect**: `input_schema.json` `properties` has a field of `type: "array"`
-that represents a list of independent work units (keywords, place_ids,
-google_maps_urls, search_terms), and `concurrency.fields` is absent or empty.
+**检测**：`input_schema.json` 的 `properties` 有 `type: "array"` 字段，代表独立工作单元列表（keywords、place_ids、google_maps_urls、search_terms），且 `concurrency.fields` 缺省或空。
 
-**Impact**: high. The platform cannot parallelize; one task does all the work
-sequentially. Adding `concurrency.fields: ["keywords"]` lets the platform
-split N keywords into N parallel tasks.
+**影响**：高。平台无法并行；一个任务串行做所有事。加 `concurrency.fields: ["keywords"]` 让平台把 N 个关键词拆成 N 个并行任务。
 
-**Suggest**:
+**建议**：
 ```json
 "concurrency": {
   "fields": ["keywords"]
 }
 ```
-Each `keywords` entry becomes its own task. For primitive items the generated
-task keeps `"keywords": ["pizza"]` (one-item array).
+每个 `keywords` 元素变独立任务。primitive 项生成的任务保留 `"keywords": ["pizza"]`（单元素数组）。
 
-**Source**: concurrency-rules.md §Decision Order, §Split Result Shape.
+**来源**：concurrency-rules.md §决策顺序、§拆分结果形状。
 
-### S-COST — precharge explosion without limits
+### S-COST — 预扣费爆炸无 limits
 
-**Detect**: a split field's items can each produce many billable results (e.g.
-a `google_maps_urls` list where each URL may return hundreds of places), and
-`concurrency.limits` is absent.
+**检测**：某拆分字段每项可能产大量可计费结果（如 `google_maps_urls` 列表每个 URL 可能返回数百地点），且 `concurrency.limits` 缺省。
 
-**Impact**: high cost. Precharge = sum of per-item billing counts, uncapped.
-A 500-URL list × 200 results each = 100k precharge.
+**影响**：高成本。预扣费 = 各项计费数之和，无封顶。500 URL × 每个返回 200 = 10 万预扣。
 
-**Suggest**: a `limits` rule capping precharge per item. `limits` does NOT
-change task count or task content — only the precharged (billing) count per
-item.
+**建议**：加 `limits` 规则封顶每项预扣。`limits` 不改任务数或任务内容——只封顶每项预扣（计费）数。
 ```json
 "concurrency": {
   "fields": ["google_maps_urls"],
@@ -58,98 +48,71 @@ item.
   ]
 }
 ```
-Per-item precharge capped at 120. `regex` optional (matches item values
-recursively, not keys); omitted = matches every item. Multiple matching limits
-→ smallest `max` wins.
+每项预扣封顶 120。`regex` 选填（递归匹配 item 值，不匹配 key）；缺省 = 匹配该字段每一项无条件下。多个 limit 匹配同一项 → 最小 `max` 胜。
 
-**Source**: concurrency-rules.md §limits.
+**来源**：concurrency-rules.md §limits。
 
-### S-LEGACY — still using `b` for splitting
+### S-LEGACY — 仍用 `b` 拆分
 
-**Detect**: `input_schema.json` has `b` (legacy) and no `concurrency.fields`.
+**检测**：`input_schema.json` 有 `b`（legacy）且无 `concurrency.fields`。
 
-**Impact**: medium. `b` is compatibility-only; `concurrency.fields` wins when
-both exist. New workers should use `fields`.
+**影响**：中。`b` 仅兼容；`concurrency.fields` 存在时优先。新 worker 应用 `fields`。
 
-**Suggest**: migrate `b` → `concurrency.fields`. The split semantics are
-equivalent for a single field (the field key is kept as a one-item array for
-primitives under `fields`, which is the new shape).
+**建议**：`b` → `concurrency.fields` 迁移。单字段拆分语义等价（`fields` 下 primitive 项保留字段名为单元素数组，是新形状）。
 
-**Source**: concurrency-rules.md §Decision Order, §Split Result Shape.
+**来源**：concurrency-rules.md §决策顺序、§拆分结果形状。
 
-### S-REMOVE — split field leaking into downstream custom
+### S-REMOVE — 拆分字段泄漏到下游 custom
 
-**Detect**: a split field's values are internal (IDs, internal tokens) and
-should not appear in downstream task custom objects, but `concurrency.remove_fields`
-is absent.
+**检测**：某拆分字段值是内部（ID、内部 token），不应出现在下游任务 custom，但 `concurrency.remove_fields` 缺省。
 
-**Impact**: low-medium. Without `remove_fields`, disabled fields are retained
-as `[""]` in generated task custom objects when the all-fields fallback is
-active.
+**影响**：中低。无 `remove_fields` 时，全字段回退路径激活，被禁用字段保留为 `[""]` 在生成的任务 custom 里。
 
-**Suggest**:
+**建议**：
 ```json
 "concurrency": {
   "fields": ["keywords", "place_ids"],
   "remove_fields": ["place_ids"]
 }
 ```
-When preferred fields (`fields - remove_fields`) are active and have meaningful
-values, every `remove_fields` key is **deleted** from generated task custom
-objects (not retained as `[""]`).
+当首选字段（`fields - remove_fields`）激活且有有效值时，每个 `remove_fields` 键从生成的任务 custom **删除**（非保留为 `[""]`）。
 
-**Caveat**: `remove_fields` is only applied when preferred fields are active.
-If the fallback all-fields path is active (preferred empty or all-empty),
-`remove_fields` is NOT applied and those fields may participate in splitting.
+**注意**：`remove_fields` 仅在首选字段激活时应用。全字段回退路径激活（首选空或全空）时**不应用** `remove_fields`，那些字段可能参与拆分。
 
-**Source**: concurrency-rules.md §Active Field Selection.
+**来源**：concurrency-rules.md §活跃字段选择。
 
-### S-MIXED — mixed object/primitive items in a split field
+### S-MIXED — 拆分字段对象/primitive 混用
 
-**Detect**: a `concurrency.fields` entry whose array mixes objects and
-primitives.
+**检测**：某 `concurrency.fields` 条目的数组混了对象和 primitive。
 
-**Impact**: `error` (runtime). `field [X] must not mix object and primitive
-items`.
+**影响**：`error`（运行时）。`field [X] must not mix object and primitive items`。
 
-**Suggest**: split into two fields, or normalize all items to one type.
-Object items merge their keys into the task custom object; primitive items
-wrap as one-item arrays — the two cannot coexist in one field.
+**建议**：拆成两字段，或全部归一为一种类型。对象项把键并入任务 custom；primitive 项包成单元素数组——两者不能在同一字段共存。
 
-**Source**: concurrency-rules.md §Element Type Matrix.
+**来源**：concurrency-rules.md §元素类型矩阵。
 
-### S-NESTED — nested arrays as split items
+### S-NESTED — 拆分项是嵌套数组
 
-**Detect**: a `concurrency.fields` array contains nested arrays.
+**检测**：某 `concurrency.fields` 数组含嵌套数组。
 
-**Impact**: `error` (runtime). `item at index N in [X] must be an object or
-primitive value`.
+**影响**：`error`（运行时）。`item at index N in [X] must be an object or primitive value`。
 
-**Suggest**: flatten, or wrap each inner array as an object.
+**建议**：扁平化，或把每个内层数组包成对象。
 
-**Source**: concurrency-rules.md §Element Type Matrix.
+**来源**：concurrency-rules.md §元素类型矩阵。
 
-## Field selection rules (for schema validation findings)
+## 字段选择规则（用于 schema 校验发现）
 
-These are `error`/`warn` findings, not suggestions, but listed here for
-completeness:
+这些是 `error`/`warn` 发现，非建议，但列此以求完整：
 
-- Each non-empty `concurrency.fields` item must match a `properties[*].name`.
-- Each `concurrency.fields` property must have `type: "array"`.
-- Each non-empty `concurrency.remove_fields` item must be a member of
-  `concurrency.fields`.
-- `limits.field` must be a member of `concurrency.fields` (it is a concurrency
-  field, NOT a billing-quantity field like `max_results`).
-- Object item must not contain a key equal to the concurrency field name →
-  `item at index N in [X] must not override concurrency field`.
+- 每个非空 `concurrency.fields` 条目须匹配一个 `properties[*].name`。
+- 每个 `concurrency.fields` 属性须 `type: "array"`。
+- 每个非空 `concurrency.remove_fields` 条目须是 `concurrency.fields` 成员。
+- `limits.field` 须是 `concurrency.fields` 成员（它是并发字段，非 `max_results` 那种计费字段）。
+- 对象项不得含与并发字段名相等的键 → `item at index N in [X] must not override concurrency field`。
 
-## Pagination trap (P2) — unrelated to concurrency but bites result correctness
+## 分页陷阱（P2）— 与并发无关但咬结果正确性
 
-Upstream list endpoints use 1-based page index (`page_index = offset/limit +
-1`), not absolute row offset. A worker or caller doing `offset += limit` to
-skip rows gets wrong pages — duplicate or missing rows, no error. The MCP
-server has a compensation layer; raw REST callers must align `offset` to a
-`limit` multiple. If a concurrency-split worker shows duplicate or missing
-rows across tasks, check whether the per-task offset logic misuses `offset`.
+上游列表接口用 1 基页索引（`page_index = offset/limit + 1`），非绝对行偏移。worker 或调用方用 `offset += limit` 跳行会拿到错页——重复或漏行，无报错。MCP server 有补偿层；裸 REST 调用须手动把 `offset` 对齐到 `limit` 倍数。若并发拆分 worker 跨任务出现重复或漏行，查每任务 offset 逻辑是否误用了 `offset`。
 
-Source: memory `[[coreclaw-pagination-bug-fix-2026-07-15]]`.
+来源：memory `[[coreclaw-pagination-bug-fix-2026-07-15]]`。

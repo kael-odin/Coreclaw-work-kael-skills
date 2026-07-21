@@ -1,63 +1,54 @@
-# Sync Procedure — Keeping the rule set in sync with coreclaw-cli-audit
+# 同步流程 — 与 coreclaw-cli-audit 保持规则集同步
 
-The static rule set (Layer 1) is authored in `Core-Claw/coreclaw-cli` →
-`skills/coreclaw-cli-audit/`. This skill does NOT redefine those rules; it
-cites them. Before a serious audit, sync.
+第 1 层静态规则集源自 `Core-Claw/coreclaw-cli` → `skills/coreclaw-cli-audit/`。本 skill **不**重定义这些规则；只引用。正式审核前须同步。
 
-## When to sync
+> 本 skill 不依赖本地路径。clone `Core-Claw/coreclaw-cli` 到任意目录即可。
 
-- Before auditing a worker you haven't audited in the last 2 weeks.
-- When a finding cites a rule code and you're unsure it still exists.
-- After the `coreclaw-cli` repo gets new commits on `audit`/`validation`
-  (watch commits touching `skills/coreclaw-cli-audit/` or `src/validation/`).
+## 何时同步
 
-## Sync steps
+- 审核一个近 2 周没审过的 worker 前。
+- 发现引用了某规则码但不确定它是否还存在时。
+- `coreclaw-cli` 仓库在 `audit`/`validation` 相关路径有新 commit 后（盯触及 `skills/coreclaw-cli-audit/` 或 `src/validation/` 的 commit）。
+
+## 同步步骤
 
 ```bash
-cd D:/Coreclaw_Work/github/coreclaw-cli
+# clone 或更新到任意本地目录
+git clone https://github.com/Core-Claw/coreclaw-cli.git
+cd coreclaw-cli
 git fetch origin
-git log --oneline origin/main -10              # scan for audit/validation commits
+git log --oneline origin/main -10              # 扫 audit/validation commit
 git pull --ff-only
 ```
 
-Then diff the rule sources against what this skill's last audit assumed:
+然后把规则源与本 skill 上次审核假设做 diff：
 
 ```bash
-# 1. Rule checklist (the canonical rule codes + severity)
-diff skills/coreclaw-cli-audit/references/contract-checklist.md <(echo "<last-audit-assumed>")
+# 1. 规则清单（规则码 + severity 的权威来源）
+cat skills/coreclaw-cli-audit/references/contract-checklist.md
 
-# 2. Known gaps + probe results (resolved/open)
+# 2. 已知缺口 + 探针结果（已解决/待查）
 cat skills/coreclaw-cli-audit/references/known-gaps.md
 
-# 3. Concurrency rules (basis for improvement suggestions)
+# 3. 并发规则（改进建议基础）
 cat skills/coreclaw-cli-audit/references/concurrency-rules.md
 
-# 4. Run the automated diff (rule coverage + API operationId coverage)
+# 4. 跑自动 diff（规则覆盖率 + API operationId 覆盖率）
 node skills/coreclaw-cli-audit/scripts/diff-contract.cjs
 ```
 
-## What to carry into this skill
+## 同步后带入本 skill 的内容
 
-- New rule codes → cite them in Layer 1 findings by their code (e.g. `R216`,
-  `hardcoded_api_key`). Do not copy the rule text into this skill — point to
-  the source.
-- New probe results in `known-gaps.md` → update severity assumptions. A rule
-  marked `✅ Resolved` as `error` stays `error`; a rule marked `⚠️ 实测推翻`
-  means the prior `error` is now `warn` (or gone).
-- New concurrency behavior in `concurrency-rules.md` → update
-  `references/concurrency-suggestions.md`.
-- New operationId in `exported-api-docs/openapi.json` → update the MCP
-  adaptation list in this skill's SKILL.md if a verification step needs it.
+- 新规则码 → 第 1 层发现里按码引用（如 `R216`、`hardcoded_api_key`）。不要把规则文本抄进本 skill——指向源头。
+- `known-gaps.md` 新探针结果 → 更新 severity 假设。标 `✅ Resolved` 为 `error` 的规则保持 `error`；标 `⚠️ 实测推翻` 的规则意味着原 `error` 现为 `warn`（或取消）。
+- `concurrency-rules.md` 新并发行为 → 更新本 skill 的 `references/concurrency-suggestions.md`。
+- 平台 API 文档新增 operation → 若某验证步骤需要，更新本 skill SKILL.md 的 MCP 适配列表。
 
-## What NOT to carry
+## 不要带入的
 
-- The CLI's own validation code (`src/validation/*.js`) — that's the engine,
-  not the rules. This skill runs the engine; it doesn't port it.
-- The CLI's `test/` fixtures — they test the CLI, not your worker.
+- CLI 自身校验代码（`src/validation/*.js`）——那是引擎不是规则。本 skill 跑引擎，不移植它。
+- CLI 的 `test/` fixture——它们测 CLI，不测你的 worker。
 
-## Recency stamp
+## 时效戳
 
-After syncing, update the `## Recency` line at the bottom of
-`skills/script-audit/SKILL.md` with the `coreclaw-cli` commit SHA and date.
-This is the only place this skill asserts "current as of" — every other claim
-points to a source instead.
+同步后，更新 `skills/script-audit/SKILL.md` 末尾 `## 时效性` 行，写 `coreclaw-cli` commit SHA 与日期。这是本 skill 唯一断言"截至某日"的地方——其它 claim 一律指向来源而非断言当下。

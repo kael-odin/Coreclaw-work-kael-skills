@@ -1,112 +1,91 @@
-# Verification Protocol — Live Input/Output via API/MCP
+# 验证协议 — 经 API/MCP 实跑输入输出
 
-Static rules say the schema is well-formed. They do not say the platform
-accepts the actual values, or that the output is correct. This is the protocol
-for the live-verification layers (L2 + L3).
+静态规则保证 schema 合规。不能保证平台接受真实输入值，或输出正确。这是 L2 + L3 实跑验证层的协议。
 
-## L2 — Live input verification
+> 本 skill 不依赖本地路径。clone `Core-Claw/coreclaw-cli` 到任意位置即可用其审核脚本；MCP/API 调用走平台公网。
 
-Goal: confirm the platform accepts a real input, and capture the real
-`code`/`message` on rejection. This is the probe that justifies any `error`
-severity claim without a structural reason.
+## L2 — 实跑验证输入
 
-### Build the probe input
+目标：确认平台接受真实输入，拒绝时抓真实 `code`/`message`。这是支撑任何 `error` severity claim 的探针（结构性原因除外）。
 
-1. `get_worker_input_schema` — re-read the live schema. Never invent field
-   names from memory or from the worker's README; the live schema is
-   authoritative.
-2. Construct a minimal `input_json` that exercises one field at a time. Minimal
-   = smallest input that should produce a non-empty result. For a Google Maps
-   worker: one keyword + one small city, not 500 keywords across 50 cities.
-3. For concurrency-split workers, test both a single-item array (smallest) and
-   a two-item array (confirms split produces two tasks, not one).
+### 构造探针输入
 
-### Run via MCP (preferred)
+1. `get_worker_input_schema` — 重读 live schema。绝不凭记忆或 worker README 造字段名，live schema 为准。
+2. 构造最小 `input_json`，每次只测一个字段。最小 = 能产出非空结果的最小输入。Google Maps worker：一个关键词 + 一个小城市，不是 500 关键词跨 50 城。
+3. 并发拆分 worker，测单元素数组（最小）和双元素数组（确认拆分产两个任务而非一个）。
+
+### 经 MCP 运行（优先）
 
 ```
 run_worker(worker_id, input_json, is_async=true)  → run_id
 get_worker_run(run_id)                            → status, code, message
-get_worker_run_log(run_id)                        → on failure: real error
+get_worker_run_log(run_id)                        → 失败时看真实错误
 ```
 
-MCP carries the pagination compensation and `/last` freshness fixes; raw REST
-does not.
+MCP 已含分页补偿与 `/last` 新鲜度修复；裸 REST 没有。
 
-### REST fallback
+### REST 兜底
 
 ```
 POST https://openapi.coreclaw.com/api/v2/workers/{worker_id}/runs
 Authorization: Bearer <token>
 Content-Type: application/json
-{"input": {...}}        # top-level input, NOT wrapped (v2 runWorker)
+{"input": {...}}        # 顶层 input，不包（v2 runWorker）
 ```
-Wait, then `GET /api/v2/workers/{worker_id}/runs/{run_id}`. Contract:
-`exported-api-docs/openapi.json` operationId `runWorker`, `getWorkerRun`.
+等后 `GET /api/v2/workers/{worker_id}/runs/{run_id}`。契约见平台 API 文档，operationId `runWorker`、`getWorkerRun`。
 
-**Auth trap**: v2 has no `api-key` header. Bearer header or `?token=` query
-only. A v2 caller using `api-key` is silently unauthenticated → `error`.
+**鉴权陷阱**：v2 无 `api-key` header。只有 Bearer header 或 `?token=` query。v2 调用用 `api-key` 静默未鉴权 → `error`。
 
-### Probe artifact
+### 探针产物
 
-Record the probe result so the `error` claim is auditable later:
+记录探针结果，让 `error` claim 后续可审计：
 
 ```
 examples/verify-<topic>/
-  README.md      # input, expected, actual: platform accepted/rejected, real code+message, date
-  input.json     # the exact input submitted
-  result.json    # captured response (status, code, message, result_count)
+  README.md      # 输入、预期、实际：平台接受/拒绝、真实 code+message、日期
+  input.json     # 提交的精确输入
+  result.json    # 抓取的响应（status, code, message, result_count）
 ```
 
-Status markers: `⏳ 待验证` → `✅ Resolved` (accepted) or `⚠️ 实测推翻`
-(rejected the hypothesis). Resolved probes stay as regression artifacts.
+状态标记：`⏳ 待验证` → `✅ Resolved`（接受）或 `⚠️ 实测推翻`（推翻假设）。已闭环探针留作回归 artifact。
 
-### Severity decision after probe
+### 探针后 severity 判定
 
-- Platform hard-rejects (non-zero `code`, HTTP 4xx/5xx, does not run) → `error`.
-- Platform accepts but form/runtime misbehaves (e.g. checkbox option won't
-  check) → `warn`.
-- Platform accepts and runs cleanly → not a finding, or `info` only.
-- No probe yet → `[VERIFY]`, never `[ERROR]`.
+- 平台硬拒（非 0 `code`、HTTP 4xx/5xx、不运行）→ `error`。
+- 平台接受但表单/运行异常（如 checkbox 选项选不中）→ `warn`。
+- 平台接受且干净运行 → 非发现，或仅 `info`。
+- 无探针 → `[VERIFY]`，绝不 `[ERROR]`。
 
-## L3 — Output correctness
+## L3 — 输出正确性
 
-Goal: the run succeeded, but is the output right? Schema validation cannot
-catch a `phone` field carrying a URL, or a numeric `rating` shipped as a
-string.
+目标：运行成功，但输出对吗？schema 校验抓不到 `phone` 装了 URL、或 `rating` 是字符串。
 
-### Sample the results
+### 抽样结果
 
 ```
-list_worker_run_results(run_id, limit=20)   # preview rows
-export_worker_run_results(run_id, format='json')  # signed download_url for full diff
+list_worker_run_results(run_id, limit=20)   # 预览行
+export_worker_run_results(run_id, format='json')  # 签名 download_url 做 full diff
 ```
 
-8 export formats: **CSV, JSON, JSONL, XLSX, XLS, XML, HTML, RSS**.
+8 种导出格式：**CSV、JSON、JSONL、XLSX、XLS、XML、HTML、RSS**。
 
-### Check matrix
+### 检查矩阵
 
-| Check | What to verify | Failure example |
-|-------|----------------|-----------------|
-| Field presence | every `output_schema` column present in rows | schema has `email`, rows never include it |
-| Field correctness | spot-check 3-5 rows vs source page | `phone` holds a website URL; `rating` is a string not number |
-| Shape vs schema | schema `array<string>` vs row value | schema says array, row carries comma-separated string |
-| Dedup across splits | no duplicate rows across `concurrency.fields` tasks | same place appears twice from two split tasks |
-| No missing rows | row count vs expected (mind 1-based offset trap) | 120-cap not hit because offset misused as row-skip |
-| CAPTCHA/403 rows | error rows not misread as success | a 403 HTML body captured as a "result" row |
+| 检查 | 验什么 | 失败例 |
+|------|--------|--------|
+| 字段存在 | output_schema 每列在行里 | schema 有 `email`，行里从不出现 |
+| 字段正确 | 抽 3-5 行对照源页 | `phone` 装网站 URL；`rating` 是字符串非数字 |
+| shape vs schema | schema `array<string>` vs 行值 | schema 说数组，行里逗号分隔字符串 |
+| 跨拆分去重 | concurrency.fields 任务间无重复行 | 同一地点从两个拆分任务出现两次 |
+| 无漏行 | 行数 vs 预期（注意 1 基 offset 陷阱） | offset 当行偏移用导致漏页 |
+| CAPTCHA/403 行 | 错误行不被误判成功 | 403 HTML body 被当"结果"行收 |
 
-For the last one, prefer `verify_run` — it returns a structured verdict
-(`PASS`/`NO_DATA`/`FAILED`/`ERROR_RECORD`/`RUNNING`/`SUBMIT_FAIL`) that guards
-against CAPTCHA or 403 rows being misread as a successful PASS.
+最后一条优先用 `verify_run`——它返回结构化判定（`PASS`/`NO_DATA`/`FAILED`/`ERROR_RECORD`/`RUNNING`/`SUBMIT_FAIL`），防 CAPTCHA 或 403 行被误读成成功 PASS。
 
-### Correctness findings are `error`
+### 正确性发现是 `error`
 
-Unlike platform-rejection findings, correctness bugs don't need an upload
-probe — the wrong output IS the evidence. But cite the row that demonstrates
-it: `[ERROR] L3: phone field carries website URL on row 3. src: verify_run
-sample 2026-07-21 [result.json:row3]`.
+与平台拒绝不同，正确性 bug 不需要上传探针——错误输出就是证据。但引用展示它的行：`[ERROR] L3: phone 字段第 3 行装了网站 URL。来源: verify_run 抽样 2026-07-21 [result.json:row3]`。
 
-## Recency
+## 时效性
 
-Protocol reflects v2 API + MCP server behavior as of 2026-07-21. The MCP
-server's pagination compensation and `/last` freshness fix are in place; raw
-REST callers still need to align `offset` to a `limit` multiple manually.
+协议反映 2026-07-21 的 v2 API + MCP server 行为。MCP server 的分页补偿与 `/last` 新鲜度修复已就位；裸 REST 调用仍需手动把 `offset` 对齐到 `limit` 倍数。

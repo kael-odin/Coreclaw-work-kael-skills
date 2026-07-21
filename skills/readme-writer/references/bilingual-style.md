@@ -1,92 +1,65 @@
-# Bilingual Style — Natural Chinese, Not Translation-ese
+# 双语风格 — 中文自然，去翻译腔
 
-`README_CN.md` is written for a Chinese reader. It is not a machine
-translation of `README.md`. Same facts, same structure, different phrasing.
+`README_CN.md` 是给中文读者写的。它不是 `README.md` 的机翻。同事实、同结构、不同表达。
 
-## What translation-ese looks like (avoid)
+## 翻译腔长什么样（避免）
 
-Stilted markers that betray machine translation:
+暴露机翻的生硬标记：
 
-- "您可以用它来…" (over-formal, repetitive 您) — natural Chinese drops the
-  pronoun when context is clear: "可以用来…"
-- "这是一个强大的工具,它能够…" (English "is a powerful tool that can" calque)
-  — Chinese prefers verb-first: "高效完成…"
-- "请注意,如果您想要…" ("please note that if you want to") — just state
-  the condition: "如需…"
-- Noun-heavy stacks: "数据采集的自动化标准化与可重复利用的实现" — split
-  into verbs: "让数据采集走向自动化、标准化、可重复利用"
-- "被" passive overuse where Chinese uses active: "数据被提取" → "提取数据"
-- English comma splices kept literally: ", which means…" → restructure as a
-  new sentence in Chinese.
+- "您可以用它来…"（过度敬语、重复"您"）——自然中文在语境清楚时省代词："可以用来…"
+- "这是一个强大的工具，它能够…"（英文 "is a powerful tool that can" 硬译）——中文偏好动词前置："高效完成…"
+- "请注意，如果您想要…"（"please note that if you want to"）——直接说条件："如需…"
+- 名词堆叠："数据采集的自动化标准化与可重复利用的实现"——拆成动词："让数据采集走向自动化、标准化、可重复利用"
+- "被"字被动滥用，中文用主动："数据被提取" → "提取数据"
+- 英文逗号粘连原样保留：", which means…" → 在中文里拆成新句
 
-## Principles
+## 原则
 
-### Verb-first, not noun-first
+### 动词前置，不名词前置
 
-English technical prose leans noun-heavy ("data collection automation"). Lean
-verb-heavy in Chinese ("自动化采集数据"). Action verbs carry the sentence;
-the object is the data.
+英文技术散文偏名词（"data collection automation"）。中文偏动词（"自动化采集数据"）。动词承句，对象是数据。
 
-### Drop redundant pronouns
+### 省冗余代词
 
-English requires a subject ("It extracts…"). Chinese drops it when context
-is clear ("提取…"). Keep 您/它 only for politeness or disambiguation, not by
-default.
+英文必须有主语（"It extracts…"）。中文在语境清楚时省（"提取…"）。只在礼貌或消歧时保留"您/它"，不默认保留。
 
-### Short clauses, parallel structure
+### 短句并列
 
-Chinese reads better with balanced short clauses than one long sentence.
-The shipped READMEs use this: "告别手动搜索和逐条复制，让数据采集走向自
-动化、标准化与可重复利用" — two parallel clauses, rhythm.
+中文用平衡的短句比一个长句顺。已发布的 README 就是这种："告别手动搜索和逐条复制，让数据采集走向自动化、标准化与可重复利用"——两个并列短句，有节奏。
 
-### Use the shipped terminology
+### 用平台官方术语
 
-CoreClaw platform terms have official Chinese forms in the zh-cn docs. Use
-them, don't re-translate:
-- Worker → Worker (keep English in tech context, or 平台任务) — match the
-  zh-cn docs
+CoreClaw 平台术语在 zh-cn 文档里有官方译。用官方译，不重译：
+- Worker → Worker（技术语境保留英文，或"平台任务"）——以 zh-cn 文档为准
 - input → 输入
 - output → 输出
 - concurrency → 并发
 - export → 导出
-- webhook → webhook (keep)
-- MCP → MCP (keep)
+- webhook → webhook（保留英文）
+- MCP → MCP（保留英文）
 
-When unsure, check https://docs.coreclaw.com/zh-cn/ for the official term.
+不确定时查 https://docs.coreclaw.com/zh-cn/ 看官方译。
 
-### Examples and JSON stay identical
+### 示例与 JSON 两文件一致
 
-Code blocks, JSON examples, field names in backticks, format specs — these
-are identical across both files. Only the prose around them is Chinese. Do
-not translate field names inside JSON. Do not translate `keyword` to `关键
-词` inside a JSON example — the field name is `keyword`.
+代码块、JSON 示例、反引号内字段名、格式规范——这些两文件完全一致。只有周围散文是中文。JSON 里的字段名不翻译。JSON 示例里不把 `keyword` 译成"关键词"——字段名就是 `keyword`。
 
-### Tone: helpful, not formal
+### 语气：平易，不官僚
 
-The shipped READMEs address the reader directly with advice ("建议使用含
-义不同、重叠度低的业务关键词组合"). Match that — direct, advisory, not
-bureaucratic. Avoid 须知/告示 register.
+已发布的 README 直接给建议（"建议使用含义不同、重叠度低的业务关键词组合"）。匹配这个——直接、建议性，不要"须知/告示"腔。
 
-## Re-check pass
+## 复查
 
-After writing `README_CN.md`, read it aloud (mentally). Any clause that sounds
-like it was translated — restructure it. The test: would a Chinese engineer
-reading a native tool's docs write this sentence? If not, rewrite.
+写完 `README_CN.md` 默读一遍。任何像机翻的从句——重写。检验标准：中文工程师读母语文档会写这句吗？不会就重写。
 
-## Heading symmetry
+## 标题对称
 
-Headings between the two files must be structurally symmetric (same section
-order, same H2/H3 hierarchy). The Chinese heading text is natural Chinese,
-not a word-by-word translation of the English. Example:
+两文件标题结构对称（同章节顺序、同 H2/H3 层级）。中文标题文字是自然中文，非英文逐词译。例：
 
-| English H2 | Chinese H2 (good) | Chinese H2 (translation-ese, avoid) |
-|------------|-------------------|--------------------------------------|
+| 英文 H2 | 中文 H2（好） | 中文 H2（翻译腔，避免） |
+|---------|---------------|------------------------|
 | What data does X extract? | X 会提取哪些数据？ | X 提取什么数据？ |
 | Search term (required) | 搜索词（必填） | 搜索术语（被要求） |
 | Enhancement features | 增强功能 | 增强功能特性 |
 
-Anchor slugs: GitHub slugifies from the heading text. If the English and
-Chinese headings differ, cross-file anchor links (e.g. `[see Input](#input)`)
-may not resolve across files. Keep headings structurally parallel; if you
-need cross-file links, use file-level links (`README.md#input`) and accept
-that the Chinese anchor may differ.
+锚点：GitHub 按 heading 文本生成 slug。中英文标题不同，跨文件锚点（如 `[见输入](#输入)`）可能失效。保持标题结构平行；需要跨文件链接时用文件级链接（`README.md#input`）并接受中文锚点可能不同。

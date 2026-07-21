@@ -1,209 +1,132 @@
 ---
 name: script-audit
 description: >
-  Audit a CoreClaw worker script end-to-end: static rules (error/warn), live
-  input+output verification via API or MCP, output correctness, and concrete
-  improvement suggestions (including concurrency.fields tuning for throughput).
-  The rule set is sourced from and kept in sync with the Core-Claw/coreclaw-cli
-  audit skill. Use when reviewing any CoreClaw worker before upload or after a
-  bad run. Trigger on: "audit this worker", "审核脚本", "check this worker",
-  "is this upload-safe", "why did this run fail", "improve concurrency".
+  端到端审核一个 CoreClaw worker 脚本：静态规则（error/warn）、通过 API 或 MCP 实跑验证输入与输出、输出结果正确性、以及具体改进建议（含 concurrency.fields 并发调优以提升吞吐/控成本）。规则集源自 Core-Claw/coreclaw-cli 的审计 skill 并保持同步。适用于上传前或运行异常后审核任意 CoreClaw worker。触发词："审核 worker""审核脚本""check this worker""is this upload-safe""why did this run fail""improve concurrency""改进并发"。
 ---
 
-# Script Audit (CoreClaw Worker)
+# Script Audit（CoreClaw Worker 脚本审核）
 
-Audit one CoreClaw worker script across five layers, then surface findings
-ranked by severity with a source pointer for each. The static rule set is
-**not authored here** — it is sourced from the `coreclaw-cli-audit` skill in
-`Core-Claw/coreclaw-cli` and kept in sync. This skill adds the layers the CLI
-audit does not cover: live API/MCP verification of input and output, output
-correctness, and improvement suggestions (concurrency, throughput, cost).
+对一个 CoreClaw worker 脚本做五层审核，按严重度排列发现，每条附来源指针。静态规则集**不在本 skill 里重写**——它源自 `Core-Claw/coreclaw-cli` 仓库的 `coreclaw-cli-audit` skill 并保持同步。本 skill 补 CLI 审计不覆盖的层：输入输出的实跑 API/MCP 验证、输出正确性、改进建议（并发、吞吐、成本）。
 
-## Sources
+## 知识来源（均不依赖本地路径）
 
-- **Authoritative rule set** (sync from here, do not re-derive):
-  `Core-Claw/coreclaw-cli` → `skills/coreclaw-cli-audit/`
-  - `SKILL.md` — audit workflow, severity policy, Phase-2 probe gate
-  - `references/contract-checklist.md` — versioned rule checklist
-  - `references/known-gaps.md` — resolved + open gaps with probe results
-  - `references/concurrency-rules.md` — task-splitting rules (basis for improvement suggestions)
-  - `scripts/diff-contract.cjs` — automated rule-vs-code diff
-- **Platform docs**:
-  - EN: https://docs.coreclaw.com/ · API: https://docs.coreclaw.com/api/
-  - ZH: https://docs.coreclaw.com/zh-cn/ · API: https://docs.coreclaw.com/zh-cn/api/
-  - MCP: https://docs.coreclaw.com/integrations/ai/mcp · ZH: https://docs.coreclaw.com/zh-cn/integrations/ai/mcp
-  - Pricing: https://www.coreclaw.com/pricing
-- **Local upstream contract mirror**: `D:/Coreclaw_Work/github/exported-api-docs/openapi.json` (37 operations, `/api/v2`, Bearer auth)
-- **Local CLI clone** (run the audit script from here): `D:/Coreclaw_Work/github/coreclaw-cli/`
-- Reference files in this skill: `references/verification-protocol.md`, `references/concurrency-suggestions.md`, `references/sync-procedure.md`
+- **权威规则集**（从这里同步，不重新推导）：
+  GitHub 仓库 `Core-Claw/coreclaw-cli` → `skills/coreclaw-cli-audit/`
+  - `SKILL.md` — 审核流程、severity 政策、Phase-2 探针 gate
+  - `references/contract-checklist.md` — 版本化规则清单
+  - `references/known-gaps.md` — 已解决 + 待查缺口（含探针结果）
+  - `references/concurrency-rules.md` — 任务拆分规则（改进建议的基础）
+  - `scripts/diff-contract.cjs` — 自动规则 vs 代码比对脚本
+- **平台官方文档**：
+  - 中文：https://docs.coreclaw.com/zh-cn/ · API https://docs.coreclaw.com/zh-cn/api/
+  - 英文：https://docs.coreclaw.com/ · API https://docs.coreclaw.com/api/
+  - MCP：https://docs.coreclaw.com/zh-cn/integrations/ai/mcp · EN https://docs.coreclaw.com/integrations/ai/mcp
+  - 价格：https://www.coreclaw.com/pricing
+- **上游 API 契约**：平台 API 文档（https://docs.coreclaw.com/api/）的 OpenAPI 契约，37 个 operation，全部 `/api/v2`，Bearer 鉴权。base URL `https://openapi.coreclaw.com`。
+- **CLI 仓库**（运行审核脚本用）：clone `Core-Claw/coreclaw-cli` 到本地任意位置即可，不假设路径。
+- 本 skill 参考文档：`references/verification-protocol.md`、`references/concurrency-suggestions.md`、`references/sync-procedure.md`
 
-## Scope: what this skill audits
+## 审核对象
 
-A single CoreClaw worker project, typically:
-- `input_schema.json` — input fields, editors, types, concurrency config
-- `output_schema.json` — output columns
-- `main.py` / `index.js` — the scraper logic
-- `README.md` / `README_CN.md` — input docs (cross-check against actual fields)
+一个 CoreClaw worker 项目，通常含：
+- `input_schema.json` — 输入字段、editor、类型、并发配置
+- `output_schema.json` — 输出列
+- `main.py` / `index.js` — 采集逻辑
+- `README.md` / `README_CN.md` — 输入文档（与实际字段交叉校验）
 
-It does NOT audit the CLI's own validation code (that is `coreclaw-cli-audit`'s
-job). The two skills are complementary: the CLI audit keeps the rule engine
-correct; this skill applies that engine to a real worker and adds live
-verification + suggestions.
+它**不审 CLI 自身的校验代码**（那是 `coreclaw-cli-audit` 的职责）。两者互补：CLI 审计保证规则引擎正确；本 skill 把引擎应用到具体 worker，并加实跑验证 + 建议。
 
-## The five audit layers
+## 五层审核
 
-### Layer 1 — Static rules (error / warn)
+### 第 1 层 — 静态规则（error / warn）
 
-Run the CLI's validator against the worker, or apply its rule set by hand if
-the worker is not yet packaged. The rule set lives in `coreclaw-cli-audit`;
-**do not redefine rules here** — cite the rule code from
-`references/contract-checklist.md`.
+用 CLI 的 validator 跑 worker，或 worker 未打包时手工套用其规则集。规则集在 `coreclaw-cli-audit`；**不在本 skill 重定义规则**——引用 `references/contract-checklist.md` 的规则码。
 
-Severity policy (from the source skill, do not deviate):
-- `error` = platform upload/runtime hard-rejects, or form won't render, or a
-  correctness/security defect. Missing `output_schema.json`, hardcoded proxy
-  credentials, Camoufox not pinning `playwright==1.49.1`, upsert key absent
-  from output_schema, unknown editor value, HTTP script ignoring proxy, v2
-  caller using `api-key` header.
-- `warn` = platform accepts but form/runtime may misbehave, or a documented
-  should/conventional. editor/type mismatch (proven accepted 2026-07-13),
-  axios+socks without `proxy:false`, header-after-push, missing README, missing
-  doc-marked title/editor/description/required.
+severity 政策（源自上游 skill，不偏离）：
+- `error` = 平台上传/运行时硬拒、表单不渲染、或正确性/安全缺陷。缺 `output_schema.json`、硬编码代理凭证、Camoufox 未 pin `playwright==1.49.1`、upsert key 不在 output_schema、未知 editor 值、HTTP 脚本不读代理、v2 调用用 `api-key` header。
+- `warn` = 平台接受但表单/运行可能异常，或文档 should/约定。editor/type 不匹配（2026-07-13 实测平台接受）、axios+socks 未设 `proxy:false`、header 晚于 push、缺 README、缺文档标必填的 title/editor/description/required。
 
-**Iron rule (from the source skill): any `error` claim must be backed by a real
-probe (`examples/verify-*`) or be structurally obvious (missing required file,
-hardcoded credential literal). No `error` from a doc "must" alone.** The
-2026-06-17 "code 4000" incident — fabricating an error code from a doc
-assumption, overturned by 2026-07-13 probes — is the cautionary tale.
+**铁律（源自上游 skill）：任何 `error` 必须有真实探针（`examples/verify-*`）支撑，或结构性显而易见（缺必填文件、硬编码凭证字面量）。不得仅凭文档"must"定 `error`。** 2026-06-17 的"code 4000"事件——凭文档假设编造错误码，被 2026-07-13 探针推翻——是前车之鉴。
 
-Run the CLI validator if the worker is packaged:
+worker 已打包时跑 CLI validator：
 ```bash
-cd D:/Coreclaw_Work/github/coreclaw-cli
-node src/cli.js validate <path-to-worker-project>
-node skills/coreclaw-cli-audit/scripts/diff-contract.cjs   # rule + API-operation coverage
+# clone Core-Claw/coreclaw-cli 到任意目录，进入该目录
+git clone https://github.com/Core-Claw/coreclaw-cli.git
+cd coreclaw-cli
+node src/cli.js validate <你的worker项目路径>
+node skills/coreclaw-cli-audit/scripts/diff-contract.cjs   # 规则 + API operation 覆盖率
 ```
 
-### Layer 2 — Live input verification (API / MCP)
+### 第 2 层 — 实跑验证输入（API / MCP）
 
-Static rules say the schema is well-formed; they do not say the platform
-accepts the actual input values. Verify by running the worker with a minimal
-real input.
+静态规则保证 schema 合规；不能保证平台接受真实输入值。用最小真实输入跑一次验证。
 
-Prefer MCP (it carries the pagination compensation + freshness fixes):
-- `get_worker_input_schema` — re-read the live schema; never invent field names.
-- `run_worker` with a minimal `input_json` built from the live schema (async).
-- `get_worker_run` + `get_worker_run_log` — capture the real `code` + `message`
-  if the platform rejects. This IS the probe that justifies any `error`.
+优先 MCP（已含分页补偿 + 新鲜度修复）：
+- `get_worker_input_schema` — 重读 live schema，绝不凭记忆造字段名。
+- `run_worker` 用基于 live schema 构造的最小 `input_json`（异步）。
+- `get_worker_run` + `get_worker_run_log` — 平台拒绝时抓真实 `code` + `message`。这本身就是支撑 `error` 的探针。
 
-REST fallback (MCP unavailable): base URL `https://openapi.coreclaw.com`,
-`Authorization: Bearer <token>` or `?token=<token>`. Contract:
-`exported-api-docs/openapi.json`, operationId `runWorker`.
+REST 兜底（MCP 不可用）：base URL `https://openapi.coreclaw.com`，`Authorization: Bearer <token>` 或 `?token=<token>`。契约见平台 API 文档，operationId `runWorker`。
 
-Full verification protocol with probe artifact format:
-`references/verification-protocol.md`.
+完整验证协议与探针产物格式：`references/verification-protocol.md`。
 
-### Layer 3 — Output correctness
+### 第 3 层 — 输出正确性
 
-A run that succeeds can still produce wrong output. Verify the result rows
-against ground truth, not just "the run finished":
+运行成功的也可能产出错误输出。把结果行与真实情况对照，不只看"跑完了"：
 
-- **Field presence**: every `output_schema.json` column appears in actual
-  result rows (sample via `list_worker_run_results`).
-- **Field correctness**: spot-check 3-5 rows against the source page. A
-  `phone` field that carries a website URL, a `rating` that is a string not a
-  number, a `reviews_count` that is null on a place with 200 reviews — these
-  are correctness bugs the schema validator cannot catch.
-- **Shape vs schema**: `output_schema` says `array<string>` but rows carry a
-  comma-separated string → mismatch.
-- **Dedup / pagination**: with `concurrency.fields` splitting, confirm no
-  duplicate rows across split tasks and no missing rows from the 1-based
-  offset trap (see `references/concurrency-suggestions.md` P2).
+- **字段存在**：`output_schema.json` 每个列都出现在真实结果行里（用 `list_worker_run_results` 抽样）。
+- **字段正确**：抽 3-5 行与源页对照。`phone` 字段装了网站 URL、`rating` 是字符串而非数字、`reviews_count` 在有 200 条评论的地点上是 null——这些是 schema 校验抓不到的正确性 bug。
+- **shape vs schema**：`output_schema` 写 `array<string>` 但行里是逗号分隔字符串 → 不匹配。
+- **去重 / 分页**：用 `concurrency.fields` 拆分时，确认拆分任务间无重复行、无因 1 基 offset 陷阱漏行（见 `references/concurrency-suggestions.md` P2）。
 
-Export a small sample for diffing:
-```bash
-# via MCP: export_worker_run_results → signed download_url, format csv/json/jsonl/xlsx/xls/xml/html/rss
+导出小样本做 diff：
 ```
-The platform supports 8 export formats: **CSV, JSON, JSONL, XLSX, XLS, XML,
-HTML, RSS** (source: platform docs + `exported-api-docs`).
+# 经 MCP: export_worker_run_results → 签名 download_url，格式 csv/json/jsonl/xlsx/xls/xml/html/rss
+```
+平台支持 8 种导出格式：**CSV、JSON、JSONL、XLSX、XLS、XML、HTML、RSS**（来源：平台文档）。
 
-### Layer 4 — Improvement suggestions
+### 第 4 层 — 改进建议
 
-This is the layer the CLI audit does not provide. For each finding, give a
-concrete, actionable improvement, ranked by impact. The richest vein is
-concurrency tuning — see `references/concurrency-suggestions.md` for the full
-matrix. Summary:
+这是 CLI 审计不提供的层。每条发现给具体可操作建议，按影响排序。最富矿的是并发调优——见 `references/concurrency-suggestions.md` 完整矩阵。摘要：
 
-- **Throughput**: if the worker has an array input (e.g. `keywords`,
-  `place_ids`, `google_maps_urls`) but no `concurrency.fields`, suggest adding
-  it so the platform splits the input into parallel tasks instead of running
-  it serially as one task.
-- **Cost control**: if a field can explode precharge (e.g. a URL list where
-  each URL may return hundreds of results), suggest a `concurrency.limits`
-  rule capping precharge per item. `limits` does NOT change task count or task
-  content — only the precharged (billing) count per item.
-- **Legacy migration**: if the worker still uses legacy `b` for splitting,
-  suggest migrating to `concurrency.fields` (`b` is ignored when `fields` is
-  present; `b` is compatibility-only).
-- **`remove_fields`**: if a split field's values should not appear in
-  downstream task custom objects (e.g. internal IDs), suggest
-  `concurrency.remove_fields` so they are deleted, not retained as `[""]`.
-- **Result quality**: if spot-checks found empty or malformed fields, suggest
-  fixing the extractor rather than documenting the gap.
+- **吞吐**：worker 有数组输入（如 `keywords`、`place_ids`、`google_maps_urls`）但没配 `concurrency.fields`，建议加上，让平台拆成并行任务而非串行单任务。
+- **成本控制**：某字段会让预扣费爆炸（如 URL 列表每个 URL 可能返回数百结果），建议加 `concurrency.limits` 规则封顶每项预扣费。`limits` 不改任务数或任务内容——只封顶每项预扣（计费）数。
+- **遗留迁移**：worker 还在用 legacy `b` 拆分，建议迁到 `concurrency.fields`（`fields` 存在时 `b` 被忽略；`b` 仅兼容）。
+- **`remove_fields`**：某拆分字段值不应出现在下游任务 custom（如内部 ID），建议用 `concurrency.remove_fields` 删除而非保留为 `[""]`。
+- **结果质量**：抽检发现空或畸形字段，建议修抽取器而非记录缺口。
 
-Other improvement categories: input-schema UX (editor choice, defaults,
-descriptions), output completeness (missing useful columns), error messages
-(include fix suggestions, never "code 4000"), README accuracy (fields match
-actual schema — route to the `readme-writer` skill).
+其它建议类目：输入 schema UX（editor 选择、default、description）、输出完整性（缺有用列）、错误消息（含修复建议，绝不"code 4000"）、README 准确性（字段与实际 schema 一致——交给 `readme-writer` skill）。
 
-### Layer 5 — Ranked report
+### 第 5 层 — 分级报告
 
-One finding per line, `error` first, then `warn`, then `VERIFY` (needs a
-probe), then `SUGGEST` (improvement). Each carries a source pointer.
+每条发现一行，`error` 在前，次 `warn`，次 `VERIFY`（需探针），次 `SUGGEST`（建议）。每条带来源指针。
 
 ```
-[ERROR]  L1: <rule code> — <claim>. src: coreclaw-cli-audit/contract-checklist.md R### [file:line]
-[VERIFY] L2: <claim> — ship examples/verify-<topic>, run via MCP run_worker [file:line]
-[WARN]   L1: <rule code> — <claim>. src: <doc or rule> [file:line]
-[SUGGEST] L4: <improvement>. src: concurrency-rules.md §<section> [file:line]
+[ERROR]  L1: <规则码> — <claim>。来源: coreclaw-cli-audit/contract-checklist.md R### [文件:行]
+[VERIFY] L2: <claim> — 须造 examples/verify-<topic>，经 MCP run_worker 跑 [文件:行]
+[WARN]   L1: <规则码> — <claim>。来源: <文档或规则> [文件:行]
+[SUGGEST] L4: <改进>。来源: concurrency-rules.md §<节> [文件:行]
 ```
 
-End with `net: <E> errors, <W> warns, <V> pending probes, <S> suggestions.`
-Apply nothing unless asked — this skill reports; the user decides.
+结尾 `net: <E> errors, <W> warns, <V> 待探针, <S> 建议。` 未要求则不改——本 skill 只报告，用户决定。
 
-## MCP / API adaptation
+## MCP / API 适配
 
-When verifying, use the MCP surface (it already fixes the pagination offset
-and `/last` freshness bugs that raw REST callers hit):
+验证时用 MCP 面（它已修复裸 REST 调用会踩的分页 offset 与 `/last` 新鲜度 bug）：
 
-- Discovery: `list_store_workers` (public) / `list_workers` (owned) →
-  `get_worker` → `get_worker_input_schema`.
-- Run: `run_worker` (async, ad-hoc input) or `run_worker_task` (saved preset).
-  For regression across many workers: `run_workers_batch` with `verify` on,
-  `concurrency=1` to avoid rate-limit masking.
-- Status: `get_worker_run` (explicit `run_id`, preferred over `/last` which
-  can be stale on REST).
-- Results: `list_worker_run_results` (preview) / `export_worker_run_results`
-  (download, 8 formats).
-- Verdict without row inspection: `verify_run` → PASS / NO_DATA / FAILED /
-  ERROR_RECORD / RUNNING / SUBMIT_FAIL (guards against CAPTCHA/403 rows being
-  misread as PASS).
-- Logs on failure: `get_worker_run_log` (supports grep/context_lines).
+- 发现：`list_store_workers`（公开）/ `list_workers`（自有）→ `get_worker` → `get_worker_input_schema`。
+- 运行：`run_worker`（异步、ad-hoc 输入）或 `run_worker_task`（保存的预设）。多 worker 回归：`run_workers_batch` 带 `verify`、`concurrency=1` 避免限流掩盖问题。
+- 状态：`get_worker_run`（显式 `run_id`，优先于可能 stale 的 `/last`）。
+- 结果：`list_worker_run_results`（预览）/ `export_worker_run_results`（下载，8 格式）。
+- 不看行即可判：`verify_run` → PASS / NO_DATA / FAILED / ERROR_RECORD / RUNNING / SUBMIT_FAIL（防 CAPTCHA/403 行被误判 PASS）。
+- 失败看日志：`get_worker_run_log`（支持 grep/context_lines）。
 
-Auth: MCP forwards `Authorization: Bearer <token>` upstream. v2 has **no**
-`api-key` header — only Bearer or `?token=` (a v2 caller using `api-key` is
-silently unauthenticated, an `error` finding).
+鉴权：MCP 把 `Authorization: Bearer <token>` 转发上游。v2 **无** `api-key` header——只有 Bearer 或 `?token=`（v2 调用用 `api-key` 会静默未鉴权，是 `error` 发现）。
 
-## Keeping the rule set in sync
+## 保持规则集同步
 
-The `coreclaw-cli-audit` skill is actively iterated (recent commits added
-`hardcoded_api_key`, `aiohttp_without_proxy`, `asyncio_run_with_sdk`,
-`external_worker_slug_reference`, `dynamic_css_class_selector` rules). Before
-a serious audit, pull the latest and diff. Procedure:
-`references/sync-procedure.md`.
+`coreclaw-cli-audit` skill 持续迭代（近期 commit 加了 `hardcoded_api_key`、`aiohttp_without_proxy`、`asyncio_run_with_sdk`、`external_worker_slug_reference`、`dynamic_css_class_selector` 规则）。正式审核前拉最新并 diff。流程见 `references/sync-procedure.md`。
 
-## Recency
+## 时效性
 
-Rule set reflects `coreclaw-cli` as of 2026-07-21 (commits through `cd48129`).
-Concurrency rules reflect the 2026-07 platform HTML. Upstream drifts — re-sync
-before relying on rule codes, and re-run any `error` claim against a live
-probe.
+规则集反映 `coreclaw-cli` 截至 2026-07-21 的状态（commit `cd48129`）。并发规则反映 2026-07 平台 HTML。上游会漂——依赖规则码前先同步，依赖 `error` claim 前先重跑探针。
