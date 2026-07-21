@@ -8,6 +8,18 @@
 
 目标：确认平台接受真实输入，拒绝时抓真实 `code`/`message`。这是支撑任何 `error` severity claim 的探针（结构性原因除外）。
 
+### 前置检查：待审核版本不可经 API/MCP 实跑
+
+**关键约束（2026-07-21 实测）**：待审核版本（刚更新待上传审核，或新创建待上传审核）**无法经 API/MCP 运行**。实测 worker `01KPD6M5YVHWCNQCRK3FTA6PBC` v1.0.4（待审核）：
+
+- `get_worker` / `get_worker_input_schema` → **能返回**待审核版本的完整信息、schema、parameters（读接口可见）
+- `run_worker` → **返回 `50001 worker does not exist`**（写接口被拒，仿佛 worker 不存在）
+- `list_store_workers` → store 列表里**搜不到**该 worker（未发布，store 不可见）
+
+即：读接口看得到，写接口跑不了，store 不可见。三者组合 = 待审核版本。
+
+**推论**：本层（L2 实跑验证）只对**已发布上架**的 worker 版本有效。对待审核版本，L2 跳过实跑，改走 UI 提交试运行（scraper-webui 的"测试运行"入口），或在 SKILL.md 报告里标 `[VERIFY] 受审核版本限制，须 UI 试跑`。不要把"API 报 50001"误记为 worker 本身的 `error`——这是版本状态而非脚本缺陷。
+
 ### 构造探针输入
 
 1. `get_worker_input_schema` — 重读 live schema。绝不凭记忆或 worker README 造字段名，live schema 为准。

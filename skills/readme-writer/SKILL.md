@@ -8,8 +8,6 @@ description: >
 
 为 CoreClaw worker 脚本撰写双语 README，内容完全基于脚本本身的真实行为。每一条字段、示例、能力说明都可在脚本里找到出处，绝不编造。
 
-本 skill 与 `beautify-github-readme`（视觉美化）和 `frontend-design`（CSS/主题）职责不同：本 skill 只负责 worker 脚本的**内容层文档**——标题、描述、meta、输入输出说明、SEO。
-
 ## 知识来源（均不依赖本地路径）
 
 - **结构模板**：已提炼进 `references/readme-structure.md`（源自已发布的 Google Maps Scraper 双语 README，含真实示例与 Example 1/2/3 写法）。本 skill 不依赖任何本地文件，他人 clone 即可用。
@@ -97,11 +95,9 @@ description: >
 
 整体过一遍 `references/seo-and-meta.md` 的 SEO checklist：标题层级、首屏价值定位、首条可运行命令（如有）、描述性链接文本、图片 alt、代码块语言标注、双语双向链接、导出格式说明等。
 
-## 不该用本 skill 的场景
+## 适用边界
 
-- 纯视觉 README 美化（hero SVG、badge、动效）→ `beautify-github-readme`。
-- 内容仓库落地页（仪表盘、订阅链接等带 SEO 目标的页面）→ 通用 `markdown-seo` 模式。本 skill 专做 **worker 脚本**的输入输出文档。
-- 无输入参数、无输出 schema 的 worker → 没有可文档化的内容，写个简短自由格式 README 即可。
+无输入参数、无输出 schema 的 worker → 没有可文档化的内容，写个简短自由格式 README 即可。
 
 ## 时效性
 
