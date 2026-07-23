@@ -4,7 +4,7 @@
 
 ## 为什么有这个仓库
 
-CoreClaw 的工作横跨很多面（API v2、MCP server、n8n 节点、CLI、采集 worker、内容仓库）。那些花一次真实运行才学到的经验——输入包装陷阱、1 基分页 offset、concurrency.fields 吞吐杠杆——应该沉淀一次反复用，而不是每个会话重新发现。
+CoreClaw 的工作横跨很多面（API v2、MCP server、n8n 节点、CLI、采集 worker、内容仓库）。那些花一次真实运行才学到的经验——输入包装陷阱（`input.parameters.custom`）、分页语义（`offset` 行偏移 + `page_index` 显示页号）、concurrency.fields 吞吐杠杆——应该沉淀一次反复用，而不是每个会话重新发现。
 
 这些 skill 是为**我自己复用**写的。它和面向消费者的 CoreClaw-Skill（教外部用户如何**操作**平台 API）不同，这里教的是**怎么干我的工作**。
 

@@ -111,8 +111,16 @@ CoreClaw worker 最富矿的改进方向。来源：`coreclaw-cli-audit/referenc
 - `limits.field` 须是 `concurrency.fields` 成员（它是并发字段，非 `max_results` 那种计费字段）。
 - 对象项不得含与并发字段名相等的键 → `item at index N in [X] must not override concurrency field`。
 
-## 分页陷阱（P2）— 与并发无关但咬结果正确性
+## 分页语义（P2）— 与并发无关但咬结果正确性
 
-上游列表接口用 1 基页索引（`page_index = offset/limit + 1`），非绝对行偏移。worker 或调用方用 `offset += limit` 跳行会拿到错页——重复或漏行，无报错。MCP server 有补偿层；裸 REST 调用须手动把 `offset` 对齐到 `limit` 倍数。若并发拆分 worker 跨任务出现重复或漏行，查每任务 offset 逻辑是否误用了 `offset`。
+**2026-07-23 实测复核**（run `01KY6QQKPAAQS6DGQ6RD7JWDE8`，100 行结果）：
 
-来源：memory `[[coreclaw-pagination-bug-fix-2026-07-15]]`。
+- `offset` 是**从 0 开始的行偏移**，不是页码。`offset=0,limit=5` 返回第 1-5 行；`offset=5,limit=5` 返回第 6-10 行；`offset=10,limit=5` 返回第 11-15 行。因此 `offset += limit` 是**正确的**翻页方式，不会跳行/漏行。
+- `page_index` 只是响应里的**一基显示页号** = `floor(offset/limit) + 1`（如 `offset=3,limit=5` → page_index=1；`offset=5,limit=3` → page_index=2）。它不是请求参数，也不是行偏移。
+- `offset` 不需要对齐到 `limit` 的倍数：`offset=3,limit=5` 合法，返回第 4-8 行。
+
+**真正的陷阱**是把 `page_index`（一基页号）当成请求参数去翻页，或把 `offset` 当成页号（传 `offset=1` 想取第一页，实际取到第 2 行起）。翻页用 `offset += limit`，以响应的 `count` 和返回行数判断是否到尾。
+
+MCP server 的分页补偿层与上述语义一致；裸 REST 直接按 `offset += limit` 翻页即可。若并发拆分 worker 跨任务出现重复或漏行，查每任务是否误把 `page_index` 当翻页参数，或是否对 `offset` 做了页号假设。
+
+来源：memory `[[coreclaw-pagination-bug-fix-2026-07-15]]`，2026-07-23 实测复核修正了此前对 page_index 语义的误述。

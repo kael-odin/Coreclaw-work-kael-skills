@@ -1,8 +1,26 @@
 ﻿# Known Gaps and Historical Fixes
 
-Last Updated: 2026-07-11
+Last Updated: 2026-07-24
 
 ## Resolved Issues
+
+### 2026-07-24: script-audit self-correction — v2 auth, pagination, input wrapping
+
+**Issue**: This skill (`script-audit`) previously stated three claims that contradicted the published v2 contract and live API behavior:
+
+1. **Auth**: "v2 无 `api-key` header" / "v2 调用用 `api-key` 会静默未鉴权 → error". The published `public/openapi.json` lists `ApiKeyAuth` (`api-key` header) alongside `BearerAuth` and `QueryTokenAuth` as global security on every operation including `runWorker`. So `api-key` header is a legitimate v2 auth mode, **not** an error. (The sibling `readme-writer` skill already stated this correctly.)
+2. **Pagination**: "1 基页索引（`page_index = offset/limit + 1`），用 `offset += limit` 跳行会拿到错页". Live verification on run `01KY6QQKPAAQS6DGQ6RD7JWDE8` (100 rows): `offset` is a **zero-based row offset** — `offset=0,limit=5` returns rows 1-5, `offset=5,limit=5` returns rows 6-10, `offset=10,limit=5` returns rows 11-15. So `offset += limit` is **correct** and does not skip rows. `page_index = floor(offset/limit)+1` is a response-only 1-based display page number, not a request parameter and not a row offset. `offset` need not align to a multiple of `limit` (`offset=3,limit=5` is legal, returns rows 4-8).
+3. **Input wrapping**: the REST fallback example showed `{"input": {...}}` (top-level object). v2 `runWorker` requires Worker form fields under `input.parameters.custom` (not top-level `input`, not legacy `custom_params` string).
+
+**Verification (2026-07-23/24)**: live `GET /api/v2/worker-runs/{runId}` and `/result` calls confirmed response field shapes (`slug`, `status`, `results`, `err_msg` absent on success, `usage`/`traffic`, `started_at`/`finished_at`/`duration` Unix seconds; result `count`/`headers[].{key,label}`/`list[]` with internal `__coreclaw_data_id__`); `GET /api/v2/worker-runs/{runId}/log` confirmed `all_logs_url` + `list[].{type,group,content,timestamp}` (ms) + `result_count`. Status enum confirmed `ready/running/succeeded/failed/aborting` — `aborted` not in contract.
+
+**Fix**:
+- `SKILL.md`: removed `api-key` from the `error` severity list; corrected the auth paragraph to "v2 支持三种等价鉴权"; added verified run-detail/result/log response-field facts to the MCP/API section; added status-enum note (`aborted` not in contract).
+- `references/verification-protocol.md`: corrected REST example to `input.parameters.custom`; corrected auth note; corrected the "无漏行" check row (offset is row offset, not page number).
+- `references/concurrency-suggestions.md`: rewrote the P2 pagination section — `offset` is a row offset, `offset += limit` is correct, `page_index` is a response-only display page number.
+- `README.md`: corrected the "1 基分页 offset" hook to "分页语义（offset 行偏移 + page_index 显示页号）".
+
+**Status**: ✅ Resolved — these were the same class of error as the 2026-06-17 "code 4000" incident (claim contradicted by live probe). Recorded here per the skill's own source-traceability principle so future audits do not reintroduce them.
 
 ### 2026-06-30: New concurrency fields contract not supported
 

@@ -46,7 +46,7 @@ description: >
 **不在本 skill 重定义规则**——引用规则码 R###。severity 政策见 `references/known-gaps.md` 末尾「Severity Guidelines」与 `contract-checklist.md` 每行的括注。
 
 severity 要点（基于开发者契约 + 已实测行为）：
-- `error` = 平台上传/运行时硬拒、表单不渲染、或正确性/安全缺陷。缺 `output_schema.json`（R216）、硬编码代理凭证（R215）、Camoufox 未 pin `playwright==1.49.1`（R211）、upsert key 不在 output_schema（R212）、未知 editor 值表单不渲染（R015）、HTTP 脚本不读代理（R150）、v2 调用用 `api-key` header。
+- `error` = 平台上传/运行时硬拒、表单不渲染、或正确性/安全缺陷。缺 `output_schema.json`（R216）、硬编码代理凭证（R215）、Camoufox 未 pin `playwright==1.49.1`（R211）、upsert key 不在 output_schema（R212）、未知 editor 值表单不渲染（R015）、HTTP 脚本不读代理（R150）。
 - `warn` = 平台接受但表单/运行可能异常，或文档 should/约定。editor/type 不匹配（R016，2026-07-13 实测平台接受）、axios+socks 未设 `proxy:false`（R214）、header 晚于 push（R213）、缺 README（R083）、缺文档标必填的 title/editor/description/required（R014a-d）。
 
 **铁律（来自吸收的规则集）：任何 `error` 必须有真实探针（`examples/verify-*`）或开发者契约明文支撑，或结构性显而易见（缺必填文件、硬编码凭证字面量）。不得仅凭文档"must"定 `error`。** 2026-06-17 的"code 4000"事件——凭文档假设编造错误码，被 2026-07-13 探针推翻——是前车之鉴（详见 `references/known-gaps.md`）。
@@ -123,12 +123,12 @@ REST 兜底（MCP 不可用）：base URL `https://openapi.coreclaw.com`，`Auth
 
 - 发现：`list_store_workers`（公开）/ `list_workers`（自有）→ `get_worker` → `get_worker_input_schema`。
 - 运行：`run_worker`（异步、ad-hoc 输入）或 `run_worker_task`（保存的预设）。多 worker 回归：`run_workers_batch` 带 `verify`、`concurrency=1` 避免限流掩盖问题。
-- 状态：`get_worker_run`（显式 `run_id`，优先于可能 stale 的 `/last`）。
-- 结果：`list_worker_run_results`（预览）/ `export_worker_run_results`（下载，8 格式）。
+- 状态：`get_worker_run`（显式 `run_id`，优先于可能 stale 的 `/last`）。返回字段（2026-07-23 实测）：`status`（唯一主要结果判断字段）、`results`（行数，`0` 不代表失败）、`err_msg`（可缺失，成功运行通常无）、`usage`/`traffic`（诊断，非成败判断）、`started_at`/`finished_at`/`duration`（Unix 秒）。状态取值 `ready`/`running`/`succeeded`/`failed`/`aborting`——`aborted` 不在公开契约，勿用。
+- 结果：`list_worker_run_results`（预览）/ `export_worker_run_results`（下载，8 格式）。响应 `data.count` 为总行数，`data.headers[].{key,label}` 为列定义，`data.list[]` 为行；行可能含内部字段 `__coreclaw_data_id__`（忽略）。分页：`offset` 从 0 开始的行偏移（`offset += limit` 翻页正确），`page_index` 仅为响应内一基显示页号，非请求参数。
 - 不看行即可判：`verify_run` → PASS / NO_DATA / FAILED / ERROR_RECORD / RUNNING / SUBMIT_FAIL（防 CAPTCHA/403 行被误判 PASS）。
-- 失败看日志：`get_worker_run_log`（支持 grep/context_lines）。
+- 失败看日志：`get_worker_run_log`（支持 grep/context_lines）。返回 `data.all_logs_url`（完整日志下载，可能临时）、`data.list[].{type,group,content,timestamp}`（timestamp 毫秒）、`data.result_count`。
 
-鉴权：MCP 把 `Authorization: Bearer <token>` 转发上游。v2 **无** `api-key` header——只有 Bearer 或 `?token=`（v2 调用用 `api-key` 会静默未鉴权，是 `error` 发现）。
+鉴权：MCP 把 `Authorization: Bearer <token>` 转发上游。v2 支持三种等价鉴权——`Authorization: Bearer <token>`、`?token=<token>` query、legacy `api-key: <token>` header（已发布 `public/openapi.json` 把三者都列为全局 security；2026-07-23 复核）。推荐 Bearer；`api-key` header 合法，**不是** error。
 
 ## 保持规则集同步
 
@@ -137,3 +137,5 @@ REST 兜底（MCP 不可用）：base URL `https://openapi.coreclaw.com`，`Auth
 ## 时效性
 
 内置规则集反映 `Core-Claw/coreclaw-cli` commit `cd48129`（2026-07-21 吸收），其依据 `Core-Claw/scraper-webui-docs` 同期状态。待审核版本不可经 API/MCP 实跑（见第 2 层）。上游会漂——依赖规则前先同步，依赖 `error` claim 前先重跑探针或确认开发者契约明文。
+
+**2026-07-23 复核修正**：鉴权（v2 支持 `api-key` header，非 error）、分页（`offset` 为行偏移，`offset += limit` 正确；`page_index` 为响应内一基显示页号）、输入包装（`input.parameters.custom`）、运行/结果/日志响应字段，均已对齐已发布 `public/openapi.json` 与实测行为。

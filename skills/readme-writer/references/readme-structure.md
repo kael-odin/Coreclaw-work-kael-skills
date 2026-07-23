@@ -128,11 +128,16 @@ base URL 为 https://openapi.coreclaw.com，所有路径以 /api/v2 开头，
 2. POST /api/v2/workers/{workerId}/runs 启动运行，传 is_async，
    scraper 输入放在 input.parameters.custom。可设 callback_url 接收回调免轮询。
 3. 保存返回的 data.run_slug。
-4. GET /api/v2/worker-runs/{runId} 查状态（用 run_slug 作 {runId}）。
-5. GET /api/v2/worker-runs/{runId}/result 取结果，或 /result/export 导出文件。
+4. GET /api/v2/worker-runs/{runId} 查状态（用 run_slug 作 {runId}）。读 data.status 判断结果：
+   ready/running 继续轮询，succeeded 取结果，failed 看 data.err_msg 与日志，aborting 表示已请求取消。
+   以 status 为准，不要用 results 行数或时间戳判断成败。
+5. GET /api/v2/worker-runs/{runId}/result 取结果（offset 从 0 开始的行偏移，offset += limit 翻页；
+   响应 data.count 为总行数），或 /result/export 导出文件（8 种格式）。
 ```
 
 > 这段基于 CoreClaw 官方 API 文档，链接真实。不要在别处编造 API 路径或 base URL。
+> 状态取值与分页语义为 2026-07-23 实测复核：status 枚举 ready/running/succeeded/failed/aborting（无 aborted）；
+> offset 为行偏移非页码，page_index 仅为响应内一基显示页号。
 
 ### 8. `## 反馈` — 收尾
 

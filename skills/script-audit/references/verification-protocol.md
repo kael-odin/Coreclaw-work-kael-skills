@@ -42,11 +42,13 @@ MCP 已含分页补偿与 `/last` 新鲜度修复；裸 REST 没有。
 POST https://openapi.coreclaw.com/api/v2/workers/{worker_id}/runs
 Authorization: Bearer <token>
 Content-Type: application/json
-{"input": {...}}        # 顶层 input，不包（v2 runWorker）
+{"input": {"parameters": {"custom": {...}}}, "is_async": true}   # 表单字段放 input.parameters.custom
 ```
-等后 `GET /api/v2/workers/{worker_id}/runs/{run_id}`。契约见平台 API 文档，operationId `runWorker`、`getWorkerRun`。
+等后 `GET /api/v2/worker-runs/{run_id}`。契约见平台 API 文档，operationId `runWorker`、`getWorkerRun`。
 
-**鉴权陷阱**：v2 无 `api-key` header。只有 Bearer header 或 `?token=` query。v2 调用用 `api-key` 静默未鉴权 → `error`。
+**输入包装（2026-07-23 复核）**：v2 `runWorker` 的 Worker 表单字段必须放在 `input.parameters.custom` 下，不是顶层 `input` 对象，也不是旧版 `custom_params` 字符串。`get_worker_input_schema` 返回的 `properties[].name` 即 `custom` 下的键。构造探针输入时按 live schema 的字段名填 `custom`。
+
+**鉴权（2026-07-23 复核）**：v2 支持三种等价方式——`Authorization: Bearer <token>`、`?token=<token>` query、以及 legacy `api-key: <token>` header。三者均可鉴权（已发布的 `public/openapi.json` 把 `BearerAuth`/`QueryTokenAuth`/`ApiKeyAuth` 都列为全局 security）。推荐 Bearer；`api-key` header 不是错误，不会静默未鉴权。
 
 ### 探针产物
 
@@ -89,7 +91,7 @@ export_worker_run_results(run_id, format='json')  # 签名 download_url 做 full
 | 字段正确 | 抽 3-5 行对照源页 | `phone` 装网站 URL；`rating` 是字符串非数字 |
 | shape vs schema | schema `array<string>` vs 行值 | schema 说数组，行里逗号分隔字符串 |
 | 跨拆分去重 | concurrency.fields 任务间无重复行 | 同一地点从两个拆分任务出现两次 |
-| 无漏行 | 行数 vs 预期（注意 1 基 offset 陷阱） | offset 当行偏移用导致漏页 |
+| 无漏行 | 行数 vs 预期（注意 offset 是行偏移非页码） | 把 offset 当页码导致漏页 |
 | CAPTCHA/403 行 | 错误行不被误判成功 | 403 HTML body 被当"结果"行收 |
 
 最后一条优先用 `verify_run`——它返回结构化判定（`PASS`/`NO_DATA`/`FAILED`/`ERROR_RECORD`/`RUNNING`/`SUBMIT_FAIL`），防 CAPTCHA 或 403 行被误读成成功 PASS。
