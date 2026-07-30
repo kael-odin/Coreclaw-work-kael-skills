@@ -32,6 +32,7 @@ description: >
 6. **参数说明详细 + 格式举例**。每个输入参数：用途 → 使用建议（推荐/不推荐示例对照）→ 格式规范 → 非平凡格式给 `#### 示例：` 代码块。
 7. **中文自然，去翻译腔**。`README_CN.md` 是给中文读者写的，不是机器翻译。
 8. **两文件结构对称**。`README.md` 与 `README_CN.md` 章节顺序与层级一致；代码块/JSON/字段名（反引号内）两文件一致，只散文不同。
+9. **面向使用者，不暴露代码内部**。README 读者是用 worker 的客户，代码对其透明。散文里禁止出现脚本文件名（`main.py`/`config.py`/`input_schema.json`/`output_schema.json` 等）、内部变量名（`INPUT_FIELD_MAP`/`DEFAULT_RUN_INPUT`/`ACTOR_ID`/`concurrency.fields`/`run_input` 等）、上游实现术语（`Apify`/`Actor`/`dataset`/`poll`/gRPC/"远端 Actor"/"映射字段名"）以及任何内部流程描述。只保留用户可见的输入参数名、输出字段名、可感知的行为与上限。讲做什么/产出什么/有何限制，不讲内部怎么实现。详见 `references/grounding-rules.md` 规则 9。
 
 ## 工作流
 

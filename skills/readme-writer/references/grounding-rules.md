@@ -69,6 +69,25 @@ README 里每个字段名（输入或输出）必须与 schema JSON 逐字一致
 
 该说脚本不能做什么时就说。基于代码说明"不支持历史热门时段""评论每地上限 N 条"。诚实能防 support 工单和差评。
 
+## 规则 9 — 面向使用者，不暴露代码内部
+
+README 的读者是**使用 worker 的客户**，不是读源码的开发者。代码对使用者完全透明，README 不得暴露任何实现细节。
+
+**禁止出现在 README 散文里的**（仅指解释机制的散文，不是字段名）：
+- 脚本文件名：`main.py`、`config.py`、`input_schema.json`、`output_schema.json`、`actor_client.py`、`sdk.py`、`counter.py`、`requirements.txt`
+- 内部变量/配置名：`INPUT_FIELD_MAP`、`DEFAULT_RUN_INPUT`、`ACTOR_ID`、`ACTOR_NAME`、`API_KEY`、`PUSH_MODE`、`concurrency.fields`、`run_input`
+- 上游实现术语：`Apify`、`Actor`、`dataset`、`defaultDatasetId`、`run`、`poll`、`gRPC`、`SDK`、"远端 Actor"、"启动 Actor"、"轮询状态"、"读取 dataset"、"映射字段名"
+- 任何"worker 合并 X 与 Y""映射 A 到 B""推断列"之类的内部流程描述
+
+**允许保留的**（这些是用户真正看到的东西）：
+- 输入参数名（`profiles`、`max_results`、`profileSorting` 等）——用户在表单/JSON 里要填
+- 输出字段名（`authorMeta`、`playCount`、`commentsDatasetUrl` 等）——用户在结果表/JSON 里会看到
+- 用户可感知的行为与上限（"每个主页最多约 400–500 条""`popular` 返回更少"）
+
+**改写原则**：把"worker 通过 `INPUT_FIELD_MAP` 把 `max_results` 映射到远端 Actor 的 `resultsPerPage`"改写成"每个主页最多采集多少条视频"。把"worker 读取远端 Actor 的默认 dataset，按 `output_schema.json` 推断输出列"改写成"每行一条视频，推入结果表"。讲**做什么、产出什么、有什么限制**，不讲**内部怎么实现**。
+
+判定标准：使用者客户读 README 时，不应出现任何"只有看代码才懂"的词。出现文件名、内部变量名、上游 Actor 术语 → 删掉重写为功能描述。
+
 ## Grounding sheet 模板
 
 动笔前填这张（内联笔记，非交付物）：
