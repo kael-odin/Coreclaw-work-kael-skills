@@ -33,6 +33,7 @@ description: >
 7. **中文自然，去翻译腔**。`README_CN.md` 是给中文读者写的，不是机器翻译。
 8. **两文件结构对称**。`README.md` 与 `README_CN.md` 章节顺序与层级一致；代码块/JSON/字段名（反引号内）两文件一致，只散文不同。
 9. **面向使用者，不暴露代码内部**。README 读者是用 worker 的客户，代码对其透明。散文里禁止出现脚本文件名（`main.py`/`config.py`/`input_schema.json`/`output_schema.json` 等）、内部变量名（`INPUT_FIELD_MAP`/`DEFAULT_RUN_INPUT`/`ACTOR_ID`/`concurrency.fields`/`run_input` 等）、上游实现术语（`Apify`/`Actor`/`dataset`/`poll`/gRPC/"远端 Actor"/"映射字段名"）以及任何内部流程描述。只保留用户可见的输入参数名、输出字段名、可感知的行为与上限。讲做什么/产出什么/有何限制，不讲内部怎么实现。详见 `references/grounding-rules.md` 规则 9。
+10. **面向用户的措辞与字段表呈现**。「提取哪些数据」用 emoji 双列表，**不列类型、不列裸字段名**——把字段语义翻译成用户能懂的一句话（`diggCount`→"❤️ 点赞数"），相关字段可归并（`createTime`+`createTimeISO`→"📅 发布时间（两种格式）"），emoji 前置每格一个、两列均衡。散文不写"给人看的链接""用于时间序列分析"这类直白突兀或技术堆砌的措辞，改写成用户视角的自然表达（"可在浏览器打开观看的链接""用两种格式记录发布时间，方便排序与梳理节奏"）。判断标准：不懂技术的运营读到能立刻明白字段对他有什么用。详见 `references/grounding-rules.md` 规则 10 与 `references/readme-structure.md` 第 3 节。
 
 ## 工作流
 
