@@ -1,0 +1,112 @@
+{
+  "description": "North Carolina Secretary of State Business Search & Entity Enricher. Searches the NC SOS business registry by company/entity names and enriches entities with official-source fields such as status, SOS ID, registered agent, principal address, annual report, and phone.",
+  "concurrency": {
+    "fields": [
+      "searchTerms"
+    ]
+  },
+  "properties": [
+    {
+      "title": "Search Terms",
+      "name": "searchTerms",
+      "type": "array",
+      "editor": "stringList",
+      "description": "One or more company/entity names; each is searched against the NC SOS business registry.",
+      "default": [
+        "Red Hat Inc",
+        "Lowe's Companies Inc"
+      ],
+      "required": false
+    },
+    {
+      "title": "Max Results Per Search",
+      "name": "maxResultsPerSearch",
+      "type": "integer",
+      "editor": "number",
+      "description": "Maximum number of matching records to save per search term.",
+      "default": 10,
+      "required": false
+    },
+    {
+      "title": "Include Profiles",
+      "name": "includeProfiles",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Fetch the profile page of each matched entity to include principal address and registered agent fields when available.",
+      "default": true,
+      "required": false
+    },
+    {
+      "title": "Include Filings",
+      "name": "includeFilings",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Fetch filing metadata for each matched entity. Does not download PDFs.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Extract Phones",
+      "name": "includePhones",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "For each matched entity, fetch the latest NC SOS annual report PDF, OCR page 1, and extract the principal place of business phone number when present on the form.",
+      "default": true,
+      "required": false
+    },
+    {
+      "title": "Enable Affiliate Resolver",
+      "name": "enableAffiliateResolver",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "When an exact legal-name search returns no results, retry with conservative brand/owner terms (e.g. 'Brennan' from 'Brennan Investment Group'); matches are flagged as possible_affiliate instead of direct_legal_name.",
+      "default": true,
+      "required": false
+    },
+    {
+      "title": "Use Managed Browser",
+      "name": "managedBrowser",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Route NC SOS requests through a managed browser session. Recommended for cloud deployments.",
+      "default": true,
+      "required": false
+    },
+    {
+      "title": "Managed Browser Headless",
+      "name": "managedBrowserHeadless",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Run the managed browser without showing a window. Keep enabled when running on Apify Cloud.",
+      "default": true,
+      "required": false
+    },
+    {
+      "title": "Managed Browser Timeout (sec)",
+      "name": "managedBrowserTimeoutSeconds",
+      "type": "integer",
+      "editor": "number",
+      "description": "Maximum seconds to wait for the managed browser session to reach the NC SOS search page before failing.",
+      "default": 240,
+      "required": false
+    },
+    {
+      "title": "Request Delay (sec)",
+      "name": "requestDelaySeconds",
+      "type": "number",
+      "editor": "number",
+      "description": "Polite delay between NC SOS requests on the fallback HTTP channel. The managed browser has its own pacing.",
+      "default": 1.5,
+      "required": false
+    },
+    {
+      "title": "Session JSON",
+      "name": "sessionJson",
+      "type": "string",
+      "editor": "textarea",
+      "description": "Fallback only. JSON containing cookies, antiforgery_token, and user_agent from an initialized NC SOS session. Used only when managedBrowser=false.",
+      "default": "",
+      "required": false
+    }
+  ]
+}

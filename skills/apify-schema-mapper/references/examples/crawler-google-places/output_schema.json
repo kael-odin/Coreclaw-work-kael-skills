@@ -1,0 +1,342 @@
+[
+  {
+    "name": "searchString",
+    "type": "string",
+    "description": "Search string that triggered this scrape (or direct detail URL)"
+  },
+  {
+    "name": "rank",
+    "type": "string",
+    "description": "Rank of the place in this page's results (nullable)"
+  },
+  {
+    "name": "searchPageUrl",
+    "type": "string",
+    "description": "Search results page URL (nullable)"
+  },
+  {
+    "name": "searchPageLoadedUrl",
+    "type": "string",
+    "description": "Actually loaded search results page URL (nullable)"
+  },
+  {
+    "name": "isAdvertisement",
+    "type": "boolean",
+    "description": "Whether the result is an advertisement"
+  },
+  {
+    "name": "title",
+    "type": "string",
+    "description": "Place name"
+  },
+  {
+    "name": "subTitle",
+    "type": "string",
+    "description": "Subtitle/type (nullable)"
+  },
+  {
+    "name": "description",
+    "type": "string",
+    "description": "Place description (nullable)"
+  },
+  {
+    "name": "price",
+    "type": "string",
+    "description": "Price range (e.g. $10-20)"
+  },
+  {
+    "name": "categoryName",
+    "type": "string",
+    "description": "Category name (e.g. Chinese restaurant)"
+  },
+  {
+    "name": "address",
+    "type": "string",
+    "description": "Full address"
+  },
+  {
+    "name": "neighborhood",
+    "type": "string",
+    "description": "Neighborhood"
+  },
+  {
+    "name": "street",
+    "type": "string",
+    "description": "Street"
+  },
+  {
+    "name": "city",
+    "type": "string",
+    "description": "City"
+  },
+  {
+    "name": "postalCode",
+    "type": "string",
+    "description": "Postal code"
+  },
+  {
+    "name": "state",
+    "type": "string",
+    "description": "State"
+  },
+  {
+    "name": "countryCode",
+    "type": "string",
+    "description": "Country code (e.g. US)"
+  },
+  {
+    "name": "website",
+    "type": "string",
+    "description": "Official website"
+  },
+  {
+    "name": "phone",
+    "type": "string",
+    "description": "Phone number (displayed format)"
+  },
+  {
+    "name": "phoneUnformatted",
+    "type": "string",
+    "description": "Phone number (raw digits)"
+  },
+  {
+    "name": "claimThisBusiness",
+    "type": "boolean",
+    "description": "Whether a 'Claim this business' entry exists"
+  },
+  {
+    "name": "location",
+    "type": "object",
+    "description": "Latitude/longitude object {lat, lng}"
+  },
+  {
+    "name": "locatedIn",
+    "type": "string",
+    "description": "Located in (nullable)"
+  },
+  {
+    "name": "plusCode",
+    "type": "string",
+    "description": "Google Plus code"
+  },
+  {
+    "name": "menu",
+    "type": "string",
+    "description": "Menu link"
+  },
+  {
+    "name": "servicesLink",
+    "type": "string",
+    "description": "Services link (nullable)"
+  },
+  {
+    "name": "totalScore",
+    "type": "number",
+    "description": "Total rating score"
+  },
+  {
+    "name": "permanentlyClosed",
+    "type": "boolean",
+    "description": "Whether permanently closed"
+  },
+  {
+    "name": "temporarilyClosed",
+    "type": "boolean",
+    "description": "Whether temporarily closed"
+  },
+  {
+    "name": "placeId",
+    "type": "string",
+    "description": "Google place ID"
+  },
+  {
+    "name": "categories",
+    "type": "array",
+    "description": "List of categories"
+  },
+  {
+    "name": "fid",
+    "type": "string",
+    "description": "Feature ID"
+  },
+  {
+    "name": "cid",
+    "type": "string",
+    "description": "Customer/circle ID"
+  },
+  {
+    "name": "reviewsCount",
+    "type": "integer",
+    "description": "Total review count"
+  },
+  {
+    "name": "reviewsDistribution",
+    "type": "object",
+    "description": "Review star distribution {oneStar..fiveStar}"
+  },
+  {
+    "name": "imagesCount",
+    "type": "integer",
+    "description": "Total image count"
+  },
+  {
+    "name": "imageCategories",
+    "type": "array",
+    "description": "List of image categories"
+  },
+  {
+    "name": "scrapedAt",
+    "type": "string",
+    "description": "Scrape timestamp"
+  },
+  {
+    "name": "reserveTableUrl",
+    "type": "string",
+    "description": "Table reservation URL (nullable)"
+  },
+  {
+    "name": "googleFoodUrl",
+    "type": "string",
+    "description": "Google Food URL (nullable)"
+  },
+  {
+    "name": "hotelStars",
+    "type": "string",
+    "description": "Hotel stars (nullable)"
+  },
+  {
+    "name": "hotelDescription",
+    "type": "string",
+    "description": "Hotel description (nullable)"
+  },
+  {
+    "name": "checkInDate",
+    "type": "string",
+    "description": "Check-in date (nullable)"
+  },
+  {
+    "name": "checkOutDate",
+    "type": "string",
+    "description": "Check-out date (nullable)"
+  },
+  {
+    "name": "similarHotelsNearby",
+    "type": "string",
+    "description": "Similar nearby hotels (nullable)"
+  },
+  {
+    "name": "hotelReviewSummary",
+    "type": "string",
+    "description": "Hotel review summary (nullable)"
+  },
+  {
+    "name": "hotelAds",
+    "type": "array",
+    "description": "List of hotel ads"
+  },
+  {
+    "name": "openingHours",
+    "type": "array",
+    "description": "Opening hours ([{day, hours}])"
+  },
+  {
+    "name": "peopleAlsoSearch",
+    "type": "array",
+    "description": "Related searches list"
+  },
+  {
+    "name": "placesTags",
+    "type": "array",
+    "description": "List of place tags"
+  },
+  {
+    "name": "reviewsTags",
+    "type": "array",
+    "description": "Review tags ([{title, count}])"
+  },
+  {
+    "name": "additionalInfo",
+    "type": "object",
+    "description": "Additional info (grouped object for service options/accessibility/payments)"
+  },
+  {
+    "name": "gasPrices",
+    "type": "array",
+    "description": "List of gas prices"
+  },
+  {
+    "name": "questionsAndAnswers",
+    "type": "array",
+    "description": "List of questions and answers"
+  },
+  {
+    "name": "updatesFromCustomers",
+    "type": "string",
+    "description": "Updates from customers (nullable)"
+  },
+  {
+    "name": "ownerUpdates",
+    "type": "array",
+    "description": "List of owner updates"
+  },
+  {
+    "name": "url",
+    "type": "string",
+    "description": "Place's Google Maps URL"
+  },
+  {
+    "name": "imageUrl",
+    "type": "string",
+    "description": "Main image URL"
+  },
+  {
+    "name": "kgmid",
+    "type": "string",
+    "description": "Google Knowledge Graph ID"
+  },
+  {
+    "name": "webResults",
+    "type": "array",
+    "description": "List of web search results"
+  },
+  {
+    "name": "parentPlaceUrl",
+    "type": "string",
+    "description": "Parent place URL (nullable)"
+  },
+  {
+    "name": "tableReservationLinks",
+    "type": "array",
+    "description": "List of table reservation links"
+  },
+  {
+    "name": "bookingLinks",
+    "type": "array",
+    "description": "List of booking links"
+  },
+  {
+    "name": "images",
+    "type": "array",
+    "description": "List of images ([{imageUrl, authorName, ...}])"
+  },
+  {
+    "name": "imageUrls",
+    "type": "array",
+    "description": "List of image URLs"
+  },
+  {
+    "name": "reviews",
+    "type": "array",
+    "description": "List of reviews"
+  },
+  {
+    "name": "userPlaceNote",
+    "type": "string",
+    "description": "User place note (nullable)"
+  },
+  {
+    "name": "restaurantData",
+    "type": "object",
+    "description": "Restaurant data object"
+  }
+]

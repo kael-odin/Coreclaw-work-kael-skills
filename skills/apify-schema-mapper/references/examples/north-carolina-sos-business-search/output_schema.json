@@ -1,0 +1,127 @@
+[
+  {
+    "name": "search_term",
+    "type": "string",
+    "description": "Search term used for this lookup"
+  },
+  {
+    "name": "rank",
+    "type": "integer",
+    "description": "Rank of this record within the current search term's results"
+  },
+  {
+    "name": "matched",
+    "type": "boolean",
+    "description": "Whether a matching record was found"
+  },
+  {
+    "name": "match_type",
+    "type": "string",
+    "description": "Match type: direct_legal_name / possible_affiliate"
+  },
+  {
+    "name": "affiliate_query",
+    "type": "string",
+    "description": "Fallback query used when the affiliate resolver matched (nullable)"
+  },
+  {
+    "name": "relationship_basis",
+    "type": "string",
+    "description": "Explanation of the matching basis"
+  },
+  {
+    "name": "name",
+    "type": "string",
+    "description": "Officially registered entity name (e.g. RED HAT, INC.)"
+  },
+  {
+    "name": "sos_id",
+    "type": "string",
+    "description": "NC SOS record ID"
+  },
+  {
+    "name": "internal_id",
+    "type": "string",
+    "description": "Internal record ID"
+  },
+  {
+    "name": "status",
+    "type": "string",
+    "description": "Entity status, e.g. Current-Active"
+  },
+  {
+    "name": "business_type",
+    "type": "string",
+    "description": "Business type, e.g. Business Corporation"
+  },
+  {
+    "name": "date_formed",
+    "type": "string",
+    "description": "Date formed"
+  },
+  {
+    "name": "prior_names",
+    "type": "array",
+    "description": "List of prior names"
+  },
+  {
+    "name": "registered_agent_name",
+    "type": "string",
+    "description": "Registered agent name"
+  },
+  {
+    "name": "principal_address",
+    "type": "string",
+    "description": "Principal place of business address"
+  },
+  {
+    "name": "company_officials",
+    "type": "array",
+    "description": "List of company officials (title/name/address/official_url)"
+  },
+  {
+    "name": "latest_filing_type",
+    "type": "string",
+    "description": "Most recent filing type, e.g. Annual Report"
+  },
+  {
+    "name": "latest_filing_date",
+    "type": "string",
+    "description": "Most recent filing date"
+  },
+  {
+    "name": "nc_sos_principal_phone",
+    "type": "string",
+    "description": "Principal business phone extracted from the annual report"
+  },
+  {
+    "name": "nc_sos_phone_confidence",
+    "type": "string",
+    "description": "Phone confidence: high / medium / low"
+  },
+  {
+    "name": "nc_sos_phone_source",
+    "type": "string",
+    "description": "Source label for the extracted phone"
+  },
+  {
+    "name": "filings",
+    "type": "array",
+    "description": "List of filing records"
+  },
+  {
+    "name": "source_url",
+    "type": "string",
+    "description": "Source page URL"
+  },
+  {
+    "name": "source",
+    "type": "string",
+    "description": "Data source description"
+  },
+  {
+    "name": "transport",
+    "type": "string",
+    "description": "Fetch channel, e.g. managed_browser"
+  }
+]

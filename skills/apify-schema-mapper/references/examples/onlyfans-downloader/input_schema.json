@@ -1,0 +1,14 @@
+{
+  "description": "OnlyFans Video Downloader. A browser-extension actor: overlays a download widget on the page, scans galleries in bulk, and downloads OnlyFans videos, images, GIFs, and text posts locally. Currently only a single informational input is exposed; no formal runtime API contract yet.",
+  "properties": [
+    {
+      "title": "Listing Notice",
+      "name": "listingNotice",
+      "type": "string",
+      "editor": "input",
+      "description": "Informational field only. This actor is currently a public listing page for a browser extension; no formal runtime API contract is exposed yet.",
+      "default": "No runtime input is required yet. See the README and product page for the current extension workflow.",
+      "required": false
+    }
+  ]
+}

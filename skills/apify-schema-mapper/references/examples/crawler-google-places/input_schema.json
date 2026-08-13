@@ -1,0 +1,403 @@
+{
+  "description": "Google Maps Scraper. Extracts data from thousands of Google Maps places and businesses, including reviews, reviewer details, images, contact info, and optional business leads and competitor analysis. Input is either Google Maps URLs or location + search terms.",
+  "concurrency": {
+    "fields": [
+      "searchStringsArray",
+      "startUrls",
+      "placeIds"
+    ]
+  },
+  "properties": [
+    {
+      "title": "Search Strings",
+      "name": "searchStringsArray",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Inputs typed into the Google Maps search bar (e.g. English breakfast, pet shelter). Use distinct, non-duplicated terms for faster processing; when searching for a specific place also fill the location fields.",
+      "default": [
+        "restaurant"
+      ],
+      "required": false
+    },
+    {
+      "title": "Location",
+      "name": "locationQuery",
+      "type": "string",
+      "editor": "input",
+      "description": "Defines the location with free text; simple formats work best, e.g. 'city + country' over 'city + country + state'.",
+      "default": "New York, USA",
+      "required": false
+    },
+    {
+      "title": "Max Crawled Places Per Search",
+      "name": "maxCrawledPlacesPerSearch",
+      "type": "integer",
+      "editor": "number",
+      "description": "Expected number of results per search term/category/URL. Larger values take longer.",
+      "default": 50,
+      "required": false
+    },
+    {
+      "title": "Language",
+      "name": "language",
+      "type": "string",
+      "editor": "input",
+      "description": "Language used to display result details.",
+      "default": "en",
+      "required": false
+    },
+    {
+      "title": "Category Filter Words",
+      "name": "categoryFilterWords",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Filter places by category; multiple categories can be selected in one field. Note synonyms are different categories (Divorce lawyer / Divorce attorney).",
+      "default": [
+        "pizza",
+        "italian"
+      ],
+      "required": false
+    },
+    {
+      "title": "Name Matching",
+      "name": "searchMatching",
+      "type": "string",
+      "editor": "select",
+      "description": "How to match search terms by name: all = name contains every word (e.g. 'chicken' matches places containing chicken); any = name matches the whole search term exactly (e.g. Kentucky Fried Chicken).",
+      "options": [
+        {
+          "label": "all",
+          "value": "all"
+        },
+        {
+          "label": "any",
+          "value": "any"
+        }
+      ],
+      "default": "all",
+      "required": false
+    },
+    {
+      "title": "Minimum Stars",
+      "name": "placeMinimumStars",
+      "type": "string",
+      "editor": "input",
+      "description": "Only crawl places with a rating equal to or higher than the selected stars; places without reviews are also skipped. Filtering by stars reduces the number of places crawlable per credit spent.",
+      "default": "",
+      "required": false
+    },
+    {
+      "title": "Website",
+      "name": "website",
+      "type": "string",
+      "editor": "input",
+      "description": "Used to exclude places without a website, or the opposite. Disabled by default.",
+      "default": "allPlaces",
+      "required": false
+    },
+    {
+      "title": "Skip Closed Places",
+      "name": "skipClosedPlaces",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Skip places permanently/temporarily marked as closed, focusing on currently operating places.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Scrape Place Detail Page",
+      "name": "scrapePlaceDetailPage",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Crawl each place's detail page individually (requires additional page loads, slower). Enables fields such as reviewsDistribution, openingHours, peopleAlsoSearch, and ensures reviewsCount is scraped.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Scrape Reservation Provider",
+      "name": "scrapeTableReservationProvider",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Scrape reservation provider data (name, address, email, phone, etc.), present only for restaurants with a blue RESERVE A TABLE button.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Scrape Order Online",
+      "name": "scrapeOrderOnline",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Scrape the 'Order online' area for restaurants, capturing delivery providers (Uber Eats, DoorDash, etc.) with fees and estimated times.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Include Web Results",
+      "name": "includeWebResults",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Extract the 'Web results' area at the bottom of each place listing.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Scrape Directories",
+      "name": "scrapeDirectories",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Some places (e.g. malls) contain multiple businesses; enables scraping the Directory / At this place area.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Max Questions",
+      "name": "maxQuestions",
+      "type": "integer",
+      "editor": "number",
+      "description": "Expected number of questions per place. 0 or empty scrapes only the first Q&A; 999 scrapes all. Some fields contain personal data.",
+      "default": 0,
+      "required": false
+    },
+    {
+      "title": "Scrape Contacts",
+      "name": "scrapeContacts",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Enrich Google Maps places with contact info from the business website, including business email and social profiles (Meta, LinkedIn, X, etc.).",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Social Media Profile Enrichment",
+      "name": "scrapeSocialMediaProfiles",
+      "type": "object",
+      "editor": "json",
+      "description": "Enable enrichment for found social profiles (followers, bio, posts, verified status, etc.). Boolean object keyed by platform.",
+      "default": {
+        "facebooks": false,
+        "instagrams": false,
+        "youtubes": false,
+        "tiktoks": false,
+        "twitters": false
+      },
+      "required": false
+    },
+    {
+      "title": "Max Leads Records",
+      "name": "maximumLeadsEnrichmentRecords",
+      "type": "integer",
+      "editor": "number",
+      "description": "Maximum number of lead records per Google Maps place with a website, including employee name/title/email/phone/LinkedIn and company data. 0 = no leads. Multiplier: 10 x 1000 places will attempt 10000 leads.",
+      "default": 0,
+      "required": false
+    },
+    {
+      "title": "Leads Departments Filter",
+      "name": "leadsEnrichmentDepartments",
+      "type": "array",
+      "editor": "stringList",
+      "description": "Include only the specified departments (e.g. Sales, Marketing, C-Suite). Only applies when leads enrichment is enabled.",
+      "default": [
+        "sales",
+        "marketing"
+      ],
+      "required": false
+    },
+    {
+      "title": "Verify Leads Emails",
+      "name": "verifyLeadsEnrichmentEmails",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Verify each lead's email, adding an emailVerification object per lead. Requires leads enrichment.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Max Reviews",
+      "name": "maxReviews",
+      "type": "integer",
+      "editor": "number",
+      "description": "Expected number of reviews per place.",
+      "default": 0,
+      "required": false
+    },
+    {
+      "title": "Reviews Start Date",
+      "name": "reviewsStartDate",
+      "type": "string",
+      "editor": "input",
+      "description": "Absolute date (e.g. 2024-05-03) or relative date (e.g. 8 days, 3 months).",
+      "default": "2024-01-01",
+      "required": false
+    },
+    {
+      "title": "Reviews Sort",
+      "name": "reviewsSort",
+      "type": "string",
+      "editor": "input",
+      "description": "Review sorting. Allowed values per original actor docs (e.g. newest / mostRelevant / oldest).",
+      "default": "newest",
+      "required": false
+    },
+    {
+      "title": "Reviews Filter String",
+      "name": "reviewsFilterString",
+      "type": "string",
+      "editor": "input",
+      "description": "Input a keyword to scrape only reviews containing it; leave empty to scrape all reviews.",
+      "default": "",
+      "required": false
+    },
+    {
+      "title": "Reviews Origin",
+      "name": "reviewsOrigin",
+      "type": "string",
+      "editor": "select",
+      "description": "Scrape all reviews (Google, Tripadvisor, etc.) or only Google reviews.",
+      "options": [
+        {
+          "label": "all",
+          "value": "all"
+        },
+        {
+          "label": "google",
+          "value": "google"
+        }
+      ],
+      "default": "all",
+      "required": false
+    },
+    {
+      "title": "Scrape Reviewer Personal Data",
+      "name": "scrapeReviewsPersonalData",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Fetch reviewers' personal data (ID, name, URL, avatar URL) and review URLs. Some fields contain personal data; comply with relevant regulations.",
+      "default": true,
+      "required": false
+    },
+    {
+      "title": "Max Images",
+      "name": "maxImages",
+      "type": "integer",
+      "editor": "number",
+      "description": "Expected number of images per place.",
+      "default": 0,
+      "required": false
+    },
+    {
+      "title": "Scrape Image Authors",
+      "name": "scrapeImageAuthors",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Attach the author name to each image. Slower due to per-image info fetching.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Enable Competitor Analysis",
+      "name": "enableCompetitorAnalysis",
+      "type": "boolean",
+      "editor": "switch",
+      "description": "Run AI competitor analysis on scraped top places; reports stored in the competitorAnalysis dataset.",
+      "default": false,
+      "required": false
+    },
+    {
+      "title": "Max Competitors to Analyze",
+      "name": "maxCompetitorsToAnalyze",
+      "type": "integer",
+      "editor": "number",
+      "description": "Total places to crawl and analyze across all searches, capped at 100; directly bounds total analysis cost.",
+      "default": 30,
+      "required": false
+    },
+    {
+      "title": "Country",
+      "name": "countryCode",
+      "type": "string",
+      "editor": "input",
+      "description": "Country of data extraction execution, e.g. United States.",
+      "default": "US",
+      "required": false
+    },
+    {
+      "title": "City",
+      "name": "city",
+      "type": "string",
+      "editor": "input",
+      "description": "City of data extraction execution, e.g. Pittsburgh. Do not include state or country names.",
+      "default": "New York",
+      "required": false
+    },
+    {
+      "title": "State",
+      "name": "state",
+      "type": "string",
+      "editor": "input",
+      "description": "State of data extraction execution, e.g. Massachusetts (mainly for US addresses).",
+      "default": "New York",
+      "required": false
+    },
+    {
+      "title": "County",
+      "name": "county",
+      "type": "string",
+      "editor": "input",
+      "description": "County of data extraction execution; note counties represent different administrative areas per country.",
+      "default": "New York County",
+      "required": false
+    },
+    {
+      "title": "Postal Code",
+      "name": "postalCode",
+      "type": "string",
+      "editor": "input",
+      "description": "Postal code of data extraction execution, e.g. 10001. Combine only with country, not with city.",
+      "default": "10001",
+      "required": false
+    },
+    {
+      "title": "Custom Geolocation",
+      "name": "customGeolocation",
+      "type": "object",
+      "editor": "json",
+      "description": "Precisely bound the search area with coordinates when other location params do not apply (GeoJSON: Polygon / MultiPolygon / Circle / Point + radiusKm; coordinates in [longitude, latitude] order).",
+      "default": {},
+      "required": false
+    },
+    {
+      "title": "Start URLs",
+      "name": "startUrls",
+      "type": "array",
+      "editor": "requestList",
+      "description": "List of Google Maps search URLs, up to 300 results per URL. URLs must contain google.com/maps/; non-standard formats like cid are supported.",
+      "default": [
+        {
+          "url": "https://www.google.com/maps/place/Yellowstone+National+Park/"
+        }
+      ],
+      "required": false
+    },
+    {
+      "title": "Place IDs",
+      "name": "placeIds",
+      "type": "array",
+      "editor": "stringList",
+      "description": "List of place IDs in the format ChIJreV9aqYWdkgROM_boL6YbwA (27 characters).",
+      "default": [
+        "ChIJreV9aqYWdkgROM_boL6YbwA"
+      ],
+      "required": false
+    },
+    {
+      "title": "Scrape All Map Places",
+      "name": "allPlacesNoSearchAction",
+      "type": "string",
+      "editor": "input",
+      "description": "Extract all visible places on the map. Auto-selects an appropriate zoom level; can be overridden with zoom (1-21).",
+      "default": "",
+      "required": false
+    }
+  ]
+}

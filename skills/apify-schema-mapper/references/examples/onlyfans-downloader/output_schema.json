@@ -1,0 +1,27 @@
+[
+  {
+    "name": "postUrl",
+    "type": "string",
+    "description": "URL of the OnlyFans post being downloaded"
+  },
+  {
+    "name": "mediaType",
+    "type": "string",
+    "description": "Type of downloaded content: video / image / gif / text"
+  },
+  {
+    "name": "mediaUrl",
+    "type": "string",
+    "description": "Direct URL of the downloaded media"
+  },
+  {
+    "name": "downloadStatus",
+    "type": "string",
+    "description": "Download result: downloaded / skipped / failed"
+  },
+  {
+    "name": "savedPath",
+    "type": "string",
+    "description": "Local file path where the content was saved (nullable)"
+  }
+]
