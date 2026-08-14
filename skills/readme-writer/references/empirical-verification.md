@@ -2,6 +2,8 @@
 
 README 的输入输出 claim（接受哪些输入形态、去重与否、失败是否产行、单次上限、真实输出结构）**必须以真实 run 的证据为准**，不以脚本自带 README、本地源码或 schema 推测为准。
 
+> 验证得到的负面发现（如失败 ID 不产行）用于确保 README 中的正面 claim 真实、不过度承诺，**不用于在 README 里列举脚本弱项**（见 grounding-rules 规则 8）。
+
 ## 为什么必须实跑（在案 3 例，Instagram 用户 ID 采集器）
 
 | 自带 README / 源码声称 | 实测（API/MCP 真实 run） | 根因 |
