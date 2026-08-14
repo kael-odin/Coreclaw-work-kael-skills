@@ -10,6 +10,8 @@ README 必须忠实描述实际脚本。这些规则把"不编造"变成可操�
 - `main.py` / `index.js` — 爬取逻辑、硬性上限、增强开关、并发配置
 - 已有的部分 README（若有）——只取可验证事实，丢弃无法从代码确认的声明
 
+读完后，**可实测的输入输出行为（接受哪些输入形态、去重、失败是否产行、上限）必须经 CoreClaw API/MCP 实跑验证**——不能只读代码或照抄自带 README，见 `references/empirical-verification.md`。
+
 任何文件缺失或不可读 → 停下并说明，不要凭假设写。
 
 ## 规则 2 — 字段名忠实
@@ -21,6 +23,8 @@ README 里每个字段名（输入或输出）必须与 schema JSON 逐字一致
 ## 规则 3 — 能力 claim 须引代码
 
 任何"每个 URL 最多 300 条""突破 120 条上限"之类 claim，必须能追到脚本某行或平台文档。脚本没设上限就别编一个。平台硬性上限若有文档依据，引用文档并照抄数字。
+
+**可实测的行为优先实跑验证**：去重、支持哪些输入格式、失败查询是否产出结果行、单次硬上限这类行为，脚本自带 README 的 claim 也可能与实现不符（在案实测两例：某 worker 自带 README 声称"自动去重、接受逗号分隔文本"，实测 v1.0.2 重复 ID 重复出结果行、逗号文本被拒；同一 worker 声称"查询失败会占一行、profile_id 保留、其余字段留空"，实测脚本内部确实推了带 ID 的空行，但平台把失败子任务的记录整体过滤出结果表，用户侧查不到失败 ID 的任何行——正确表述是"查不到的数据不会返回"）。能跑一次真实 run 的就不只读代码。
 
 不确定就诚实模糊："支持大量类别"，而不是编造"支持最多 100 个类别"——除非脚本或文档真说了 100。
 
@@ -86,6 +90,14 @@ README 的读者是**使用 worker 的客户**，不是读源码的开发者。�
 - 脚本文件名：`main.py`、`config.py`、`input_schema.json`、`output_schema.json`、`actor_client.py`、`sdk.py`、`counter.py`、`requirements.txt`
 - 内部变量/配置名：`INPUT_FIELD_MAP`、`DEFAULT_RUN_INPUT`、`ACTOR_ID`、`ACTOR_NAME`、`API_KEY`、`PUSH_MODE`、`concurrency.fields`、`run_input`
 - 上游实现术语：`Apify`、`Actor`、`dataset`、`defaultDatasetId`、`run`、`poll`、`gRPC`、`SDK`、"远端 Actor"、"启动 Actor"、"轮询状态"、"读取 dataset"、"映射字段名"
+- **脚本核心抓取方法**（怎么抓的，不是抓了什么——最容易无意泄漏、也最值钱的一层）：
+  - 目标平台主机名/域名：`i.instagram.com`、`www.instagram.com`、`api.tiktokv.com`、`graph.instagram.com` 等
+  - API 端点路径：`/api/v1/users/{id}/info/`、`/graphql`、`/web/profile` 等
+  - 会话/Cookie/bootstrap 流程："先请求首页拿 Cookie 再调用户接口""绑定代理的匿名会话""移动端/网页端接口"之分
+  - HTTP 状态码与重试/超时数值："408/425/429/5xx 最多重试 3 次""超时 20 秒"
+  - 协议与反爬细节：TLS、请求头、签名/指纹
+  - 算法内部顺序：去重/排序/截断的"先 X 再 Y"（用户可感知的输入行为与上限除外，且必须先实测确认存在）
+  - 运维细节：日志记了什么、凭据如何脱敏、代理如何配置
 - 任何"worker 合并 X 与 Y""映射 A 到 B""推断列"之类的内部流程描述
 
 **允许保留的**（这些是用户真正看到的东西）：
@@ -93,9 +105,9 @@ README 的读者是**使用 worker 的客户**，不是读源码的开发者。�
 - 输出字段名（`authorMeta`、`playCount`、`commentsDatasetUrl` 等）——用户在结果表/JSON 里会看到
 - 用户可感知的行为与上限（"每个主页最多约 400–500 条""`popular` 返回更少"）
 
-**改写原则**：把"worker 通过 `INPUT_FIELD_MAP` 把 `max_results` 映射到远端 Actor 的 `resultsPerPage`"改写成"每个主页最多采集多少条视频"。把"worker 读取远端 Actor 的默认 dataset，按 `output_schema.json` 推断输出列"改写成"每行一条视频，推入结果表"。讲**做什么、产出什么、有什么限制**，不讲**内部怎么实现**。
+**改写原则**：把"worker 通过 `INPUT_FIELD_MAP` 把 `max_results` 映射到远端 Actor 的 `resultsPerPage`"改写成"每个主页最多采集多少条视频"。把"worker 读取远端 Actor 的默认 dataset，按 `output_schema.json` 推断输出列"改写成"每行一条视频，推入结果表"。把"worker 先请求 Instagram 首页获取 Cookie，再调用公开的 `/api/v1/users/{id}/info/` 把用户名映射成 @用户名和主页链接"改写成"读取 Instagram 公开主页元数据，返回当前用户名和主页链接，无需登录"。讲**做什么、产出什么、有什么限制**，不讲**内部怎么实现**。
 
-判定标准：使用者客户读 README 时，不应出现任何"只有看代码才懂"的词。出现文件名、内部变量名、上游 Actor 术语 → 删掉重写为功能描述。
+判定标准：使用者客户读 README 时，不应出现任何"只有看代码才懂"的词。出现文件名、内部变量名、上游 Actor 术语、平台主机名、API 端点、Cookie/会话/bootstrap、重试与超时数值 → 删掉重写为功能描述。自问一句："这句话是用户看到的结果/限制，还是脚本怎么实现的？"后者一律删。
 
 ## 规则 10 — 面向用户的措辞与字段表呈现
 
@@ -157,6 +169,10 @@ FAQ 的问和答必须对得上——问什么就正面答什么，不要问 A �
   - name: <开关>, default: on, cost: 免费/运行时, returns: <字段>
 并发: fields=[], remove_fields=[], limits=[], legacy_b=
 硬性上限: <如每区域 120 条、每 URL 300 条> — 来源: <代码行或文档>
+实测记录（实跑，见 empirical-verification.md）:
+  - claim: 输入只接受纯字符串数组、失败 ID 不产行
+    run_id: <run_id>, 探针: ["真实值", "99999999999999999"], 观察: succeeded, result_count=1, 日志 404 PROFILE_ID_UNRESOLVED
+  - claim: <下一个>
 ```
 
-README 每个 claim 都应能追到这张表某行。
+README 每个 claim 都应能追到这张表某行；可实测的输入输出 claim 无 run_id 证据不得写入 README。

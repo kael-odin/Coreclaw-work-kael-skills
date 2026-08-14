@@ -1,7 +1,7 @@
 ---
 name: readme-writer
 description: >
-  为 CoreClaw worker 脚本撰写中英双语 README（README.md + README_CN.md），内容必须基于脚本真实的爬取逻辑、输入输出字段与能力范围，不得编造信息或链接，输入示例完整可跑、输出示例真实。会先生成有区分度的产品化标题与描述（中英各一份）以及用于 SEO 的 meta 标题和 meta 描述，再按既定结构撰写并做整体 SEO 优化。触发词："写脚本 README""生成 worker 文档""bilingual README""写中英文 README"。
+  为 CoreClaw worker 脚本撰写中英双语 README（README.md + README_CN.md），内容必须基于脚本真实的爬取逻辑、输入输出字段与能力范围，不得编造信息或链接，不暴露脚本核心实现细节（目标平台主机名、API 端点、Cookie/会话流程、重试/超时数值），输入示例完整可跑、输出示例真实。脚本自带 README 与本地源码可能不代表线上行为，可实测的输入输出行为（接受哪些输入形态、去重、失败是否产行、单次上限）必须经 CoreClaw API/MCP 实跑验证后再写。会先生成有区分度的产品化标题与描述（中英各一份）以及用于 SEO 的 meta 标题和 meta 描述，再按既定结构撰写并做整体 SEO 优化。触发词："写脚本 README""生成 worker 文档""bilingual README""写中英文 README"。
 ---
 
 # README Writer（CoreClaw Worker 脚本文档）
@@ -19,8 +19,9 @@ description: >
   - GitHub 组织：https://github.com/Core-Claw
 - **REST API 集成基线**（FAQ "能否当 API 用"必用）：base URL `https://openapi.coreclaw.com`，所有路径以 `/api/v2` 开头，鉴权 `Authorization: Bearer <API_KEY>`（legacy `api-key` header 与 `?token=` query 仍兼容）。典型流程：取 input schema → `POST /api/v2/workers/{workerId}/runs`（input 放在 `input.parameters.custom`，可设 `callback_url`）→ 存 `data.run_slug` → `GET /api/v2/worker-runs/{runId}` 查状态 → `GET /api/v2/worker-runs/{runId}/result` 取结果或 `/result/export` 导出。workerId 支持 slug 或 `owner~name` 路径，version 缺省为 latest。
 - **导出格式**：平台支持 8 种——CSV、JSON、JSONL、XLSX、XLS、XML、HTML、RSS。
-- **脚本本身**（撰写前必读，是内容唯一真实来源）：`input_schema.json`（字段名/类型/editor/required/default/enum）、`output_schema.json`（每个输出列）、`main.py`/`index.js`（爬取逻辑、硬性上限、增强开关、并发配置）。
-- 参考文档：`references/readme-structure.md`、`references/grounding-rules.md`、`references/bilingual-style.md`、`references/seo-and-meta.md`。
+- **脚本本身**（撰写前必读）：`input_schema.json`（字段名/类型/editor/required/default/enum）、`output_schema.json`（每个输出列）、`main.py`/`index.js`（爬取逻辑、硬性上限、增强开关、并发配置）。**注意：本地源码与自带 README 可能不代表线上行为**（平台按元素拆子任务时脚本里的批量解析可能是死代码，自带 README 声称的格式/去重/失败行为可能全假）。
+- **线上实测**（可实测的输入输出行为最高优先级证据）：经 CoreClaw API/MCP 实跑真实 run，见 `references/empirical-verification.md`。输入接受哪些形态、去重与否、失败是否产行、单次上限——这些 claim 以实跑为准，不以代码或自带 README 为准。
+- 参考文档：`references/readme-structure.md`、`references/grounding-rules.md`、`references/bilingual-style.md`、`references/seo-and-meta.md`、`references/empirical-verification.md`。
 
 ## 硬规则（不可妥协）
 
@@ -32,8 +33,9 @@ description: >
 6. **参数说明详细 + 格式举例**。每个输入参数：用途 → 使用建议（推荐/不推荐示例对照）→ 格式规范 → 非平凡格式给 `#### 示例：` 代码块。
 7. **中文自然，去翻译腔**。`README_CN.md` 是给中文读者写的，不是机器翻译。
 8. **两文件结构对称**。`README.md` 与 `README_CN.md` 章节顺序与层级一致；代码块/JSON/字段名（反引号内）两文件一致，只散文不同。
-9. **面向使用者，不暴露代码内部**。README 读者是用 worker 的客户，代码对其透明。散文里禁止出现脚本文件名（`main.py`/`config.py`/`input_schema.json`/`output_schema.json` 等）、内部变量名（`INPUT_FIELD_MAP`/`DEFAULT_RUN_INPUT`/`ACTOR_ID`/`concurrency.fields`/`run_input` 等）、上游实现术语（`Apify`/`Actor`/`dataset`/`poll`/gRPC/"远端 Actor"/"映射字段名"）以及任何内部流程描述。只保留用户可见的输入参数名、输出字段名、可感知的行为与上限。讲做什么/产出什么/有何限制，不讲内部怎么实现。详见 `references/grounding-rules.md` 规则 9。
+9. **面向使用者，不暴露代码内部**。README 读者是用 worker 的客户，代码对其透明。散文里禁止出现脚本文件名（`main.py`/`config.py`/`input_schema.json`/`output_schema.json` 等）、内部变量名（`INPUT_FIELD_MAP`/`DEFAULT_RUN_INPUT`/`ACTOR_ID`/`concurrency.fields`/`run_input` 等）、上游实现术语（`Apify`/`Actor`/`dataset`/`poll`/gRPC/"远端 Actor"/"映射字段名"）以及任何内部流程描述，特别是**脚本核心抓取方法**——目标平台主机名（`i.instagram.com` 等）、API 端点路径（`/api/v1/users/{id}/info/` 等）、Cookie/会话/bootstrap 流程、HTTP 状态码与重试/超时数值。只保留用户可见的输入参数名、输出字段名、可感知的行为与上限。讲做什么/产出什么/有何限制，不讲内部怎么实现。详见 `references/grounding-rules.md` 规则 9。
 10. **面向用户的措辞与字段表呈现**。「提取哪些数据」用 emoji 双列表，**不列类型、不列裸字段名**——把字段语义翻译成用户能懂的一句话（`diggCount`→"❤️ 点赞数"），相关字段可归并（`createTime`+`createTimeISO`→"📅 发布时间（两种格式）"），emoji 前置每格一个、两列均衡。语气**通俗与专业并重**：避开"给人看的链接""主要杠杆是""不用走……那一套"这类直白突兀的口语（换成"浏览器可打开的链接""最直接的手段""无需走……流程"），也避开"用于时间序列分析""object/array/integer"这类技术堆砌（先讲字段做什么，类型留到详解）。推荐/建议落到具体动作而非抽象判断（"如果需要分析账号转发行为"而非"对分析有意义时"）；不把内部流程翻译成用户视角（"套用数量上限"→"按 `max_results` 取前若干条"）；FAQ 问与答要对齐、不自相矛盾；字段名当名词宾语、不当动词主语；功能对仗不为工整牺牲准确。用规范产品术语：采集/导出/写入结果表/创作者/互动指标。校验：不懂技术的运营能立刻明白用途、懂技术的同行觉得用词准确——两条都过才定稿。详见 `references/grounding-rules.md` 规则 10 与 `references/readme-structure.md` 第 3 节。
+11. **输入输出行为以实跑为准**。有 CoreClaw API/MCP 可用时，可实测的输入输出行为（接受哪些输入形态、去重与否、失败/查不到是否产行、单次上限、真实输出嵌套）必须跑一次真实 run 验证再写；脚本自带 README 与本地源码可能不代表线上行为（在案：某 worker 自带 README 声称"接受对象数组/逗号分隔文本/自动去重/失败占一行留空"，实测对象数组 400、逗号文本不拆分、重复 ID 重复出行、失败 ID 无任何可见行）。探针流程、输入/输出验证清单与证据记录见 `references/empirical-verification.md`。
 
 ## 工作流
 
@@ -55,14 +57,15 @@ description: >
 ### Phase 1 — 读脚本（grounding）
 
 从实际代码提取：
-- **爬取逻辑**：打哪个源、查询形态、单次请求上限、平台硬性上限（如 Google Maps 每区域 120 条上限）。来源 `main.py`/`index.js`。
+- **爬取逻辑**：打哪个源、查询形态、单次请求上限、平台硬性上限（如 Google Maps 每区域 120 条上限）。来源 `main.py`/`index.js`。**"打哪个源/端点"仅作内部 grounding，绝不写入 README**（规则 9）；只有单次请求上限、平台硬性上限这类用户可感知的数字能进 README。
 - **输入字段**：name、type、editor、required、default、enum、description。来源 `input_schema.json`。标出哪些是数组（并发候选）。
 - **输出字段**：每个列名 + 类型。来源 `output_schema.json`。
 - **能力范围**：有哪些增强开关、各做什么、默认开/关、成本影响。来源主脚本 + schema。
 - **导出格式**：CSV/JSON/JSONL/XLSX/XLS/XML/HTML/RSS（平台通用 8 种）。
 - **并发配置**（若有）：`concurrency.fields`、`remove_fields`、`limits`、legacy `b`。
+- **实跑验证（输入输出，必须）**：读完代码后，经 CoreClaw API/MCP 跑一次最小探针 run（真实可解析值打底，每个要验证的 claim 加一个针对性元素：无效值、逗号分隔文本、重复 ID、逼近上限）。记录 run_id、探针输入、逐条观察（接受/拒绝、去重、失败是否产行、真实输出嵌套）。可实测的输入输出 claim 无 run_id 证据不进 Phase 2。流程见 `references/empirical-verification.md`。
 
-填一张 grounding sheet（内联笔记，非交付物）。**有缺口就不进 Phase 2**——每个 README claim 都要能追到此处某行。
+填一张 grounding sheet（含实测记录，内联笔记，非交付物）。**有缺口就不进 Phase 2**——每个 README claim 都要能追到此处某行。
 
 ### Phase 2 — 套结构
 
@@ -88,6 +91,8 @@ description: >
 - 每个链接可解析（或为平台官方 URL）？
 - 输入示例完整可跑？
 - 输出 JSON 列与 `output_schema.json` 完全一致？
+- 输入格式/去重/失败产行/上限等可实测 claim 均有实跑 run_id 证据（见 `references/empirical-verification.md`）？
+- 散文里不出现脚本文件名、内部变量名、上游 Actor 术语、平台主机名、API 端点、Cookie/会话/bootstrap、重试与超时数值？
 - 中文自然无翻译腔？
 - meta 标题/描述长度达标、含主关键词？
 

@@ -45,6 +45,8 @@
 
 必填参数在前。每个标（必填）或（选填）。
 
+**输入示例与格式规范必须实跑验证**：接受纯数组还是对象数组、逗号分隔文本是否拆分、重复 ID 是否去重、坏元素是整 run 失败还是忽略——这类 claim 以真实 run 为准（见 `references/empirical-verification.md`），不照抄脚本自带 README。
+
 #### 输入子节示例范式（对照写）
 
 ```
@@ -68,7 +70,7 @@ marketing agency, marketing agencies, digital marketing agency, SEO agency near 
 ### 5. `## ⬆️ 输出` — 表格视图 + 真实 JSON + 分维度
 
 - **表格视图**：描述 UI 表格（总览、按字段分组/筛选）。有截图则放仓库内资产（`![view.png](assets/view.png)`），不编造图片 URL。
-- **`### 🧩 完整 JSON 记录`**：一个**真实** JSON 数组，含一条完整记录。每个键都是 `output_schema.json` 的列；值用保留域名（`example-dental.test`）和占位号（`+1 512-555-0101`），可空字段诚实留空（`email_2: ""`、`email_2_status: ""`）。这是 README 里被复制最多的块，必须字段精确、可跑。
+- **`### 🧩 完整 JSON 记录`**：一个**真实** JSON 数组，含一条完整记录。每个键都是 `output_schema.json` 的列；值用保留域名（`example-dental.test`）和占位号（`+1 512-555-0101`），可空字段诚实留空（`email_2: ""`、`email_2_status: ""`）。这是 README 里被复制最多的块，必须字段精确、可跑。嵌套子字段、空值形态、失败是否产行——以真实 run 输出为准（见 `references/empirical-verification.md`），不凭 schema 推测、不信代码里的 error 空行。
 - **分维度详解**（`### 📇 联系方式与拓展`、`### 📧 邮箱验证`、`### 📱 社交平台数据`、`### ⭐ 评分与评论`、`### 🧾 商家详情`）：**仅包含脚本真实产出的维度**。每个展开 JSON 记录中相关子集。
 
 ### 6. `## 📍📡 用地理参数实现更精准定位`（仅脚本支持时）
@@ -119,7 +121,7 @@ custom_geojson > postal_code + country > base_location > country/state/city/coun
 ### 7. `## ❓ 常见问题` — 基于真实限制的 Q&A
 
 6-10 条，每条答案基于脚本真实行为，非营销话术。标准集（按脚本裁剪）：
-- X 是如何工作的？（讲清运行时流程）
+- X 是如何工作的？（只讲用户可感知的层面："读取公开数据、匿名、无需登录"。**禁止**平台主机名、API 端点、Cookie/会话/bootstrap、重试与超时数值——这些是脚本核心方法，见 grounding-rules 规则 9）
 - 官方 API 有哪些缺点？（仅当脚本封装了某官方 API）
 - 可以从多个位置采集吗？（多 run 或工作流）
 - 如何提高采集速度？（引用真实 concurrency.fields 行为、max_results、增强开关关闭）
@@ -160,6 +162,8 @@ base URL 为 https://openapi.coreclaw.com，所有路径以 /api/v2 开头，
 ## 反模式（看到就删）
 
 - 用实现语言列功能（"用了 Playwright、asyncio"）——读者要用途不要技术栈。
+- "如何工作" FAQ 泄露抓取实现（`i.instagram.com`、`/api/v1/users/{id}/info/`、"先请求首页拿 Cookie""绑定代理的匿名会话"）——只讲"读取公开数据、无需登录"这一层。
+- 把 HTTP 状态码/重试次数/超时秒数写进 README（"408/429 重试 3 次""超时 20 秒"）——用户不需要，也是脚本核心方法。
 - "状态：WIP"不说明哪些可用。
 - 输入示例残缺（`{"keyword": "..."}` 缺其它必填）——不可跑。
 - 输出 JSON 桩（`{"title": "...", "phone": "..."`）省略真实列——隐藏字段集。
