@@ -87,7 +87,6 @@ SERP 摘要。决定点击率。
 - [ ] 主关键词在 H1、首段、至少一个 H2、至少一个 alt 里自然出现（不堆砌）。
 
 **站点/仓库级**
-- [ ] `README.md` 与 `README_CN.md` 首屏双向链接（`> 🌍 语言：…`），双语翻倍可触达受众。
 - [ ] 导出格式说明含全部 8 种（CSV/JSON/JSONL/XLSX/XLS/XML/HTML/RSS）——这些是长尾搜索词。
 - [ ] FAQ 含"当 API 用"一条，带真实 REST API base URL 与流程——捕获"XXX API"类搜索意图。
 - [ ] 不编造任何链接（见 grounding-rules 规则 3）——坏链损害信任与排名。

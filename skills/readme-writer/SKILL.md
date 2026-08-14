@@ -100,7 +100,7 @@ description: >
 
 ### Phase 5 — SEO 优化
 
-整体过一遍 `references/seo-and-meta.md` 的 SEO checklist：标题层级、首屏价值定位、首条可运行命令（如有）、描述性链接文本、图片 alt、代码块语言标注、双语双向链接、导出格式说明等。
+整体过一遍 `references/seo-and-meta.md` 的 SEO checklist：标题层级、首屏价值定位、首条可运行命令（如有）、描述性链接文本、图片 alt、代码块语言标注、导出格式说明等。
 
 ## 适用边界
 
