@@ -73,6 +73,10 @@
 ## 其它可用来源（补充，非必需）
 
 - `https://api.apify.com/v2/acts/<owner>~<name>`：返回 actor 元数据（JSON），含
-  `exampleRunInput`（示例输入值，可补 default）与 `readmeSummary`，但**无 inputSchema 字段**。
-  `~` 路由可用，`/` 路由与 `/input-schema` 子路径 404。
+  `exampleRunInput`（示例输入值，可补 default）、`readmeSummary`、**`pictureUrl`（图标直链）**，
+  但**无 inputSchema 字段**。`~` 路由可用，`/` 路由与 `/input-schema` 子路径 404。
+- **图标来源**：`pictureUrl` 是 S3 直链，实测为 PNG 128×128；**仅部分 actor 有**
+  （2026-08-14 实测：crawler-google-places 有，onlyfans-downloader / north-carolina-sos-business-search
+  无）。无自定义图标的 actor 页面用通用占位图 `https://apify.com/img/store/actor_picture.svg`，
+  **不要下载占位图冒充该 actor 的图标**——无 `pictureUrl` 时跳过并注明即可。
 - 官方 OpenAPI 定义 URL 在 `.md` 末尾 `## OpenAPI specification` 给出（per-build，随版本变）。
