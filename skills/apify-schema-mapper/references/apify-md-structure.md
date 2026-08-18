@@ -75,6 +75,10 @@
 - `https://api.apify.com/v2/acts/<owner>~<name>`：返回 actor 元数据（JSON），含
   `exampleRunInput`（示例输入值，可补 default）、`readmeSummary`、**`pictureUrl`（图标直链）**，
   但**无 inputSchema 字段**。`~` 路由可用，`/` 路由与 `/input-schema` 子路径 404。
+- **描述来源**：`readmeSummary` 即 `.md` 标题下方简介段的权威来源，落盘为第 4 个交付物
+  `description.txt`（规则 9）。实测（2026-08-18）：不同 actor 的 `readmeSummary` 形态不一致——
+  有短句营销简介（如 "…is a simple yet effective tool that…"），也有以 `## Title` 开头的长摘要
+  （如 Google Maps Scraper / OnlyFans Downloader）；统一取原样，并把开头的 markdown 标题行剥掉。
 - **图标来源**：`pictureUrl` 是 S3 直链，实测为 PNG 128×128；**仅部分 actor 有**
   （2026-08-14 实测：crawler-google-places 有，onlyfans-downloader / north-carolina-sos-business-search
   无）。无自定义图标的 actor 页面用通用占位图 `https://apify.com/img/store/actor_picture.svg`，

@@ -1,0 +1,12 @@
+A crawler Actor that discovers and exports source-hosted OnlyFans media URLs and associated metadata from public OnlyFans pages (profiles, media sections, and posts). It collects creator metadata, post context, thumbnails, direct media file links, media variants, and technical media properties (duration, width, height, file type/extension), supports selection of media kinds (video, photo, all, post-specific), batch processing of multiple targets, date-range filtering, sort-order requests, per-target limits, deduplication of duplicate source items, and per-target error handling and retries; each saved record represents one discovered media link with its source, creator, post context, thumbnail and technical details for downstream indexing or processing.
+
+## Use cases
+
+- Researchers, media teams, and developers collecting source-hosted OnlyFans media links with creator, post, thumbnail, file, and source metadata.  
+- Collecting media from multiple public OnlyFans targets in a single run.  
+- Extracting direct video links and associated video metadata (duration, resolution, file type).  
+- Extracting photo links and thumbnails when available.  
+- Extracting source-hosted media URLs for downstream workflows or URL-only pipelines.  
+- Collecting media and post context from known posts or post URLs.  
+- Exporting creator, post, size, duration, and source details for cataloging, indexing, or metadata analysis.  
+- Running focused short or large-scale collections using per-target limits, date ranges, and sort-order filters.
