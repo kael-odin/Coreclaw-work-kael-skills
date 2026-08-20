@@ -100,15 +100,20 @@ GET https://openapi.coreclaw.com/api/v2/workers/{owner}~{name}/internal       # 
    `version/create`）——这类接口当前不可用，不要依赖；用 create + PUT versions 组合即可。
 7. **workerId 格式**：公开 API 用 `owner~name`（`/` 路由 404；纯 name 404）。
 8. 公开 API 偶发全站 502（网关故障，15-25 分钟自愈）——重试即可。
-9. **【重要】页面展示字段只在 create 时写入**：console 页面顶部读 `actors/detail`
-   的 `icon`/`description`（console 侧数据），公开 API 的 PUT versions 更新的是
-   **另一份**数据（`internal`/`input-schema` 接口可见），互不影响。所以：
-   - **create 时必须一次传全展示字段**（完整 description + OSS icon），否则之后
-     补改没有可用 API（info_update/save 等全部 103，2026-08-20 实测），只能页面
-     手动编辑或等平台修复。
+9. **【重要】页面展示字段只在 create 时写入，且 create 传全即生效（已实测）**：
+   console 页面顶部读 `actors/detail` 的 `icon`/`description`（console 侧数据），公开 API
+   的 PUT versions 更新的是**另一份**数据（`internal`/`input-schema` 接口可见），互不影响。
+   - **create 时必须一次传全展示字段**（完整 description + OSS icon）——2026-08-20 批量
+     6 worker 实测：create 全字段后 `actors/detail` 的 `detail.icon`/`detail.description`
+     立即正确（`detail_icon=true`、`detail_desc_ok=true`），无需二次操作。
+   - 补改展示字段的接口（info_update/save 等）当前 103 不可用——所以不要依赖「创建后再补」。
    - 验证页面展示用 `POST consoleapi.coreclaw.com/api/actors/detail`（body
      `{"slug":"..."}`，返回 `data.detail.icon/description/title`）；验证版本数据用
      公开 API 的 `internal`/`input-schema`。两个都过才算发布完成。
+10. **worker 的 name 由 title 派生**：create 不传 `name` 字段，平台按 title 空格→连字符
+    生成 name（如 title "airbnb scraper" → name `airbnb-scraper`，path `scraper/airbnb-scraper`）。
+    公开 API 查询/更新一律用**派生 name**（`owner~<title空格换->`），不是本地目录名
+    （目录名形如 `<owner>-<name>` 会 404——2026-08-20 批量发布实测踩到）。
 
 ## 关键路径速查
 
