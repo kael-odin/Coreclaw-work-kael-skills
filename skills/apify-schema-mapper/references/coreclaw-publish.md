@@ -96,10 +96,19 @@ GET https://openapi.coreclaw.com/api/v2/workers/{owner}~{name}/internal       # 
    确认数据以 `internal`/`input-schema` 为准；页面强制刷新（Ctrl+Shift+R）仍旧则
    在页面编辑保存一次触发同步。
 6. **console API 部分接口上游故障**（`103 Network error, try again.`，如
-   `version/list`、`version/detail`、`version/info_update`）——这类接口当前不可用，
-   不要依赖；用 create + PUT versions 组合即可。
+   `version/list`、`version/detail`、`version/info_update`、`actors/save`、
+   `version/create`）——这类接口当前不可用，不要依赖；用 create + PUT versions 组合即可。
 7. **workerId 格式**：公开 API 用 `owner~name`（`/` 路由 404；纯 name 404）。
 8. 公开 API 偶发全站 502（网关故障，15-25 分钟自愈）——重试即可。
+9. **【重要】页面展示字段只在 create 时写入**：console 页面顶部读 `actors/detail`
+   的 `icon`/`description`（console 侧数据），公开 API 的 PUT versions 更新的是
+   **另一份**数据（`internal`/`input-schema` 接口可见），互不影响。所以：
+   - **create 时必须一次传全展示字段**（完整 description + OSS icon），否则之后
+     补改没有可用 API（info_update/save 等全部 103，2026-08-20 实测），只能页面
+     手动编辑或等平台修复。
+   - 验证页面展示用 `POST consoleapi.coreclaw.com/api/actors/detail`（body
+     `{"slug":"..."}`，返回 `data.detail.icon/description/title`）；验证版本数据用
+     公开 API 的 `internal`/`input-schema`。两个都过才算发布完成。
 
 ## 关键路径速查
 
