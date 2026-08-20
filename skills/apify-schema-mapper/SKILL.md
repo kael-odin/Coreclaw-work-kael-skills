@@ -1,16 +1,16 @@
 ---
 name: apify-schema-mapper
 description: >
-  将 Apify actor 链接转换为 CoreClaw worker 的 schema 文件。给定一个或多个 Apify actor 链接（如 https://apify.com/compass/crawler-google-places），自动拉取对应的 .md 文档（https://apify.com/<owner>/<name>.md），提取脚本输入与输出字段，生成 CoreClaw 兼容的 input_schema.json 与 output_schema.json——字段名与 Apify 源 1:1 保留，类型映射到 CoreClaw 的 6 种，编辑器必须映射到 CoreClaw 支持的 12 种；并从 Apify API 下载 actor 图标与商店短描述（营销语）落盘，description.txt 含脚本名（URL 末段去连字符）。触发词："Apify 转 CoreClaw""生成 input_schema""生成 output_schema""apify schema 转换""按 apify 链接生成 worker schema""下载 actor 图标""下载 actor 描述"。
+  将 Apify actor 链接转换为 CoreClaw worker 并发布上线。给定一个或多个 Apify actor 链接（如 https://apify.com/compass/crawler-google-places），自动拉取对应的 .md 文档（https://apify.com/<owner>/<name>.md），提取脚本输入与输出字段，生成 CoreClaw 兼容的 input_schema.json 与 output_schema.json——字段名与 Apify 源 1:1 保留，类型映射到 CoreClaw 的 6 种，编辑器必须映射到 CoreClaw 支持的 12 种；并从 Apify API 下载 actor 图标与商店短描述（营销语）落盘，description.txt 含脚本名（URL 末段去连字符）；然后组装 worker zip（内置模板，不依赖本地文件）并通过 CoreClaw API 创建 worker、上传图标、发布版本（需 CORECLAW_API_KEY 与 CORECLAW_CONSOLE_COOKIE）。触发词："Apify 转 CoreClaw""生成 input_schema""生成 output_schema""apify schema 转换""按 apify 链接生成 worker schema""下载 actor 图标""下载 actor 描述""发布到 coreclaw""创建 coreclaw worker""apify 链接上线"。
 ---
 
-# Apify → CoreClaw Schema Mapper
+# Apify → CoreClaw Schema Mapper & Publisher
 
-把一个或多个 Apify actor 链接转成 CoreClaw worker 能直接用的 `input_schema.json` 与
-`output_schema.json`，并把 actor 图标、短描述（商店营销语）一并下载落盘。输出字段名与 Apify 源
-一致（不翻译不改名），编辑器/类型严格限定在 CoreClaw 支持集合内，并在回复里附一份「映射说明」
-交代推断与限制（交付物共四个：两个 schema 文件 + 图标文件（若有）+ 描述文件；`.md`、映射说明
-等其它中间物均不落盘）。
+把一个或多个 Apify actor 链接转成 CoreClaw worker：生成 `input_schema.json` 与
+`output_schema.json`，下载 actor 图标与短描述（商店营销语），组装 worker zip 并
+**发布到 CoreClaw 平台**。输出字段名与 Apify 源一致（不翻译不改名），编辑器/类型严格限定在
+CoreClaw 支持集合内，并在回复里附一份「映射说明」交代推断与限制（交付物：两个 schema 文件 +
+图标文件（若有）+ 描述文件 + worker zip；`.md`、映射说明等中间物不落盘）。
 
 ## 知识来源
 
@@ -21,11 +21,24 @@ description: >
   2026-08-13 以 onlyfans-downloader / north-carolina-sos-business-search / crawler-google-places
   实测确认结构与陷阱——见 `references/apify-md-structure.md`。
 - **映射决策表**：`references/editor-mapping.md`（含实测映射样例）。
+- **CoreClaw 发布流程**：接口、字段格式与全部坑见 `references/coreclaw-publish.md`
+  （2026-08-20 实测跑通）。
 
 ## 输入
 
 - 一个或多个 Apify actor 链接，形如 `https://apify.com/<owner>/<name>`。
 - 可选：输出目录（默认当前目录下 `apify-schema-output/<owner>-<name>/`）。
+- 发布凭证：环境变量 `CORECLAW_API_KEY` + `CORECLAW_CONSOLE_COOKIE`（见「凭证」节），
+  缺失时向用户索取。
+
+## 凭证（发布必需，不落盘、不硬编码）
+
+- `CORECLAW_API_KEY`：公开 API（openapi.coreclaw.com/api/v2）Bearer 凭证，
+  形如 `scraper_api_...`，console 设置页生成。
+- `CORECLAW_CONSOLE_COOKIE`：console 会话 Cookie 头（consoleapi.coreclaw.com/api），
+  关键是 `x-coreclaw-t` JWT；从登录后的 Chrome DevTools → Network → 请求 Cookie 头复制。
+- **cookie 有有效期**（JWT exp，约 1 个月），过期后向用户重新索取。
+- 不把凭证写进任何交付文件、日志或 skill 文件。
 
 ## 硬规则（不可妥协）
 
@@ -43,12 +56,14 @@ description: >
 6. **required 是推断值**。`.md` 不声明 required：描述明确"must/required/必须"才 `true`，
    其余 `false`，交付说明里注明。
 7. **每个链接都要给映射说明**（在回复里给出，不落盘为文件）。字段总数、select/checkbox 的
-   options 来源、required 推断、输出来源（含"无文档化输出→拟定"标注）、concurrency 建议。
+   options 来源、required 推断、输出来源（含"无文档化输出→拟定"标注）、concurrency 建议、
+   发布结果（worker path / 版本 / 图标 URL / 验证结果）。
 8. **图标取 API `pictureUrl`**。调用 `https://api.apify.com/v2/acts/<owner>~<name>`，取
    `data.pictureUrl`（S3 直链）下载为 `<输出目录>/icon.<扩展名>`（扩展名按 URL 或
    Content-Type 定，实测为 PNG 128×128）。**无 `pictureUrl`**（actor 未上传自定义图标）→
-   不生成图标文件，在回复里注明「无自定义图标（Apify 页面用通用占位图
-   `actor_picture.svg`）」；不下载通用占位图冒充该 actor 的图标。
+   **用脚本生成字母图标**：纯色背景 + 脚本名首字母（如 `T`）的简单 PNG（可用 Python PIL
+   或纯 Python 写 PNG；若环境无 PIL 则生成 SVG 转 PNG 或直接生成最小合法 PNG），
+   命名为 `icon.png`，并在回复里注明「无自定义图标，已生成字母图标」。
 9. **描述是第 4 个交付物**。每个 actor 生成 `<输出目录>/description.txt`，固定两段：
    **第 1 行是脚本名**——取链接 URL 路由最后一段 `<name>`，去掉全部 `-` 连字符
    （如 `mega-downloader-bypass-limit` → `mega downloader bypass limit`）；
@@ -61,6 +76,12 @@ description: >
    - **不要用 `data.readmeSummary` 作描述**：那是长 README 摘要（常以 `## 标题` 开头），
      不是商店页的短营销语（2026-08-20 实测二者内容不同，用它会抓成长摘要）。
    - 描述文件用英文原文（与商店一致，不翻译、不改写）。
+10. **发布时的 description 必须 ASCII**：multipart 上传给 CoreClaw 的 `description` 字段
+    若含 em-dash（`—`，U+2014）会报 `11000 Operation failed. Try again.`（实测）——
+    发布前把 `—` 换成 ASCII `-`（其它非 ASCII 字符保守处理）。本地 `description.txt`
+    保留原文。
+11. **zip 每次发布内容必须变化**：zip 内置 `version.txt` 标记文件（如 `v1.0.1-2`），
+    每次发布前更新其内容；包不变报 `11000 Script package is unchanged`。
 
 ## 工作流
 
@@ -105,7 +126,7 @@ description: >
     （url + 附加参数，给 `param_list`）/ `checkbox`（固定少数选项）
 - 字段语义是"最大结果数"的，命名为 `max_results`（平台约定）。
 
-### Phase 5 — 生成文件 + 映射说明
+### Phase 5 — 生成文件
 
 - 每个 actor 建 `apify-schema-output/<owner>-<name>/`，写三个文件：
   - `input_schema.json`：`{description, properties:[…]}`。每个 property 含
@@ -127,18 +148,36 @@ description: >
   表示，不编造具体值（如 `sessionJson` 默认 `""`、`maxReviews` 默认 `0`）。
 - 若存在互斥的 array 输入（如 startUrls / searchStringsArray），在 `input_schema.json`
   加 `concurrency.fields`（取主输入字段），并在说明里解释任务拆分语义。
-- **交付物是 `input_schema.json` + `output_schema.json` + 图标文件（若有）+ `description.txt`**
-  （`.md`、映射说明等均不落盘）。映射说明在回复里给出：字段数、select/checkbox 来源、
-  required 推断声明、输出来源（含"拟定"标注）、图标下载结果（有/无 pictureUrl）、
-  描述来源（data.description / .md 头部简介段 / 无可用描述）、concurrency 说明、已知限制。
-- **下载图标**：Phase 1 记录的 `pictureUrl` 有值 → `curl -sL <pictureUrl> -o <输出目录>/icon.<ext>`，
+- **下载/生成图标**：Phase 1 记录的 `pictureUrl` 有值 → `curl -sL <pictureUrl> -o <输出目录>/icon.<ext>`，
   扩展名按 URL 后缀或 `Content-Type` 定（`.png`/`.webp`/`.jpg`/`.svg` 均可）；下载后用文件头校验
-  是图片（PNG 开头 `\x89PNG`）。无 `pictureUrl` → 不生成图标文件，回复里注明。
+  是图片（PNG 开头 `\x89PNG`）。无 `pictureUrl` → 按规则 8 生成字母图标 `icon.png`。
 - **收尾自查**：① 编辑器全部落在 12 种内；② 类型全部落在 6 种内；③ 输入字段名与 `.md` 源
   逐一比对无遗漏无改名；输出列若有源示例则同样比对，无源示例（拟定输出）则复核列名合理、
   无重复、类型正确；④ 每个输入 property 都有 `default` 且其 JSON 类型与 `type` 一致
   （array 元素形态合理）；⑤ JSON 用 `python -m json.tool` 或等价方式校验可解析；
   ⑥ `<输出目录>/description.txt` 已生成：第 1 行为脚本名、正文非空（或为占位说明）。
+
+### Phase 6 — 发布到 CoreClaw（可选，默认执行；无凭证则跳过并注明）
+
+按 `references/coreclaw-publish.md` 的接口与坑执行，顺序：
+
+1. **凭证**：读 `CORECLAW_API_KEY` / `CORECLAW_CONSOLE_COOKIE` 环境变量；缺失则向用户索取。
+2. **组装 zip**（输出目录内 `<name>.zip`，**根级平铺**）：
+   `references/worker-template/` 的全部文件 + `input_schema.json` + `output_schema.json` +
+   `description.txt` + `icon.<ext>` + `version.txt`（内容 = 版本标记，每次发布前更新，
+   如 `v1.0.1`、`v1.0.1-2`……）。
+3. **上传图标**：`POST https://consoleapi.coreclaw.com/api/common/upload`（Cookie，
+   multipart `file=@icon.<ext>`）→ `data.file_path`（OSS URL）。
+4. **创建 worker**：先 `GET https://openapi.coreclaw.com/api/v2/workers/{owner}~{name}`
+   （Bearer）判存在；不存在 → `POST https://consoleapi.coreclaw.com/api/actors/create`
+   （Cookie，multipart：`title`=脚本名、`description`=短描述（**ASCII，规则 10**）、
+   `categories=56`（单值，规则见文档）、`icon`=OSS URL、`scraper_file`=zip）→ `data.slug`。
+5. **更新版本**：`GET .../workers/{owner}~{name}` 读 `data.version` →
+   `PUT .../workers/{owner}~{name}/versions/{version}`（Bearer，multipart 同 create 字段，
+   每次带**变化后**的 zip）。刚创建的 worker 不能 POST 新建版本（`50003`），用 PUT。
+6. **验证**：`GET .../workers/{owner}~{name}/input-schema`（Public）确认表单字段；
+   `GET .../workers/{owner}~{name}/internal`（Public）确认 title/description/categories/version。
+7. 映射说明里汇报：worker path（`owner/name`）、slug、版本号、图标 OSS URL、验证结果。
 
 ## 已固化的样例（references/examples/）
 
@@ -151,6 +190,8 @@ description: >
 - `crawler-google-places`：39 输入（stringList/requestList/switch/number/select/json/input，
   含 13 个布尔开关；`reviewsStartDate` 接受相对日期故用 input 而非 datepicker），
   68 输出列（取 README `JSON file` 示例）；有图标 → `icon.png`（128×128，下载自 `pictureUrl`）。
+- `trustmrr-startup-scraper`（2026-08-20 端到端发布跑通）：8 输入 / 20 输出，发布为
+  `scraper/trustmrr-startup-scraper`（categories 56、图标走 OSS、em-dash 转 ASCII）。
 
 上表为 schema 格式参考；按规则 9，**每次正式 run 都会额外生成 `description.txt`**（已固化的
 `crawler-google-places` / `onlyfans-downloader` 样例目录已含 `description.txt` 示意——第 1 行
