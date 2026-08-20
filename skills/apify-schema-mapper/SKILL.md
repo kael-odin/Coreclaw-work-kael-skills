@@ -1,13 +1,13 @@
 ---
 name: apify-schema-mapper
 description: >
-  将 Apify actor 链接转换为 CoreClaw worker 的 schema 文件。给定一个或多个 Apify actor 链接（如 https://apify.com/compass/crawler-google-places），自动拉取对应的 .md 文档（https://apify.com/<owner>/<name>.md），提取脚本输入与输出字段，生成 CoreClaw 兼容的 input_schema.json 与 output_schema.json——字段名与 Apify 源 1:1 保留，类型映射到 CoreClaw 的 6 种，编辑器必须映射到 CoreClaw 支持的 12 种；并从 Apify API 下载 actor 图标与短描述（简介段）落盘。触发词："Apify 转 CoreClaw""生成 input_schema""生成 output_schema""apify schema 转换""按 apify 链接生成 worker schema""下载 actor 图标""下载 actor 描述"。
+  将 Apify actor 链接转换为 CoreClaw worker 的 schema 文件。给定一个或多个 Apify actor 链接（如 https://apify.com/compass/crawler-google-places），自动拉取对应的 .md 文档（https://apify.com/<owner>/<name>.md），提取脚本输入与输出字段，生成 CoreClaw 兼容的 input_schema.json 与 output_schema.json——字段名与 Apify 源 1:1 保留，类型映射到 CoreClaw 的 6 种，编辑器必须映射到 CoreClaw 支持的 12 种；并从 Apify API 下载 actor 图标与商店短描述（营销语）落盘，description.txt 含脚本名（URL 末段去连字符）。触发词："Apify 转 CoreClaw""生成 input_schema""生成 output_schema""apify schema 转换""按 apify 链接生成 worker schema""下载 actor 图标""下载 actor 描述"。
 ---
 
 # Apify → CoreClaw Schema Mapper
 
 把一个或多个 Apify actor 链接转成 CoreClaw worker 能直接用的 `input_schema.json` 与
-`output_schema.json`，并把 actor 图标、短描述（简介段）一并下载落盘。输出字段名与 Apify 源
+`output_schema.json`，并把 actor 图标、短描述（商店营销语）一并下载落盘。输出字段名与 Apify 源
 一致（不翻译不改名），编辑器/类型严格限定在 CoreClaw 支持集合内，并在回复里附一份「映射说明」
 交代推断与限制（交付物共四个：两个 schema 文件 + 图标文件（若有）+ 描述文件；`.md`、映射说明
 等其它中间物均不落盘）。
@@ -49,16 +49,18 @@ description: >
    Content-Type 定，实测为 PNG 128×128）。**无 `pictureUrl`**（actor 未上传自定义图标）→
    不生成图标文件，在回复里注明「无自定义图标（Apify 页面用通用占位图
    `actor_picture.svg`）」；不下载通用占位图冒充该 actor 的图标。
-9. **描述是第 4 个交付物**。每个 actor 除了两个 schema + 图标，还要把**短描述**（简介段，即
-   `.md` 标题下方那段营销文字，如 "…is a simple yet effective tool that…"）提取落盘为
-   `<输出目录>/description.txt`。**不落盘 `.md` 全文**，只落简短描述文本。
-   - 来源优先级：① API 元数据的 `data.readmeSummary`（正是标题下那段的权威来源；
-     注意该字段在不同 actor 上可能是短句也可能是长摘要，统一取原样）；
-     ② 缺失/为空 → 取 `.md` `# README` 段开头的简介段（剥 HTML/反转义/去 markdown 标记）；
+9. **描述是第 4 个交付物**。每个 actor 生成 `<输出目录>/description.txt`，固定两段：
+   **第 1 行是脚本名**——取链接 URL 路由最后一段 `<name>`，去掉全部 `-` 连字符
+   （如 `mega-downloader-bypass-limit` → `mega downloader bypass limit`）；
+   **空一行后是商店短描述**（营销语，英文原文，不翻译不改写）。**不落盘 `.md` 全文**。
+   - 短描述来源优先级：① API 元数据的 `data.description`（商店页标题下方营销语的权威来源，
+     实测为短句，如 "Download MEGA files and folders fast, …"）；
+     ② 缺失/为空 → 取 `.md` 头部：H1 标题行下方、`- **URL**:` 列表之前的第一段
+     （剥 HTML/反转义/去 markdown 标记）；
      ③ 两者皆无 → 写占位说明「No description available for this actor.」并在回复里注明「无可用描述」。
-   - **规范化**：若 `readmeSummary` 以 markdown 标题行开头（如 `## Some Title`），剥掉该标题行
-     （及其后空行），只保留真正的描述正文，避免 `description.txt` 里混入标题。
-   - 描述文件用英文原文（与 `.md` 一致，不翻译、不改写）。
+   - **不要用 `data.readmeSummary` 作描述**：那是长 README 摘要（常以 `## 标题` 开头），
+     不是商店页的短营销语（2026-08-20 实测二者内容不同，用它会抓成长摘要）。
+   - 描述文件用英文原文（与商店一致，不翻译、不改写）。
 
 ## 工作流
 
@@ -67,9 +69,9 @@ description: >
 - 从输入链接正则提取 `owner` 与 `name`：`https://apify.com/<owner>/<name>`。
 - 抓取 `https://apify.com/<owner>/<name>.md`（`WebFetch` 或 `curl -sL`），解析完即弃、**不落盘**。
 - 抓取 actor 元数据 `https://api.apify.com/v2/acts/<owner>~<name>`，记录 `data.pictureUrl`
-  （图标直链）与 `data.readmeSummary`（**短描述**，即 `.md` 标题下方的简介段，供描述文件用；
-  注意 `~` 路由可用，`/` 路由与 `/input-schema` 子路径 404）。此接口还提供
-  `exampleRunInput`（可补 default），但**无 inputSchema 字段**。
+  （图标直链）与 `data.description`（**商店短描述**，供 description.txt 用；`data.readmeSummary`
+  是长 README 摘要，**不要**用作描述来源。注意 `~` 路由可用，`/` 路由与 `/input-schema`
+  子路径 404）。此接口还提供 `exampleRunInput`（可补 default），但**无 inputSchema 字段**。
 - 若 `.md` 抓取失败（404/超时），明确报告该链接不可用并跳过，不臆造字段。
 
 ### Phase 2 — 提取输入字段
@@ -111,8 +113,10 @@ description: >
     `description`、`required`、**`default`（必须有）**；select/checkbox 补 `options`；
     datepicker 补 `format`/`valueFormat`；requestListSource 补 `param_list`。
   - `output_schema.json`：`[{name, type, description}, …]`，顺序按示例输出 JSON 的键序。
-  - `description.txt`：actor 短描述，内容取 Phase 1 记录的 `readmeSummary`（缺失时按规则 9 的
-    回退链路取 `.md` README 简介段，仍无则写占位说明并注明）。
+  - `description.txt`：**第 1 行脚本名**（URL 末段 `name` 去 `-` 转空格，如
+    `mega-downloader-bypass-limit` → `mega downloader bypass limit`），空一行后接商店短描述
+    （内容取 Phase 1 记录的 `data.description`；缺失时按规则 9 的回退链路取 `.md` 头部简介段，
+    仍无则写占位说明并注明）。
 - **schema 文件全英文**：`input_schema.json` 的顶层 `description`、每个 property 的
   `title`/`description`，以及 `output_schema.json` 的每列 `description` 一律用英文
   （schema 直接渲染在 CoreClaw 平台表单上，面向终端用户；字段 `name` 本就 1:1 保留英文）。
@@ -126,7 +130,7 @@ description: >
 - **交付物是 `input_schema.json` + `output_schema.json` + 图标文件（若有）+ `description.txt`**
   （`.md`、映射说明等均不落盘）。映射说明在回复里给出：字段数、select/checkbox 来源、
   required 推断声明、输出来源（含"拟定"标注）、图标下载结果（有/无 pictureUrl）、
-  描述来源（readmeSummary / README 简介段 / 无可用描述）、concurrency 说明、已知限制。
+  描述来源（data.description / .md 头部简介段 / 无可用描述）、concurrency 说明、已知限制。
 - **下载图标**：Phase 1 记录的 `pictureUrl` 有值 → `curl -sL <pictureUrl> -o <输出目录>/icon.<ext>`，
   扩展名按 URL 后缀或 `Content-Type` 定（`.png`/`.webp`/`.jpg`/`.svg` 均可）；下载后用文件头校验
   是图片（PNG 开头 `\x89PNG`）。无 `pictureUrl` → 不生成图标文件，回复里注明。
@@ -134,21 +138,24 @@ description: >
   逐一比对无遗漏无改名；输出列若有源示例则同样比对，无源示例（拟定输出）则复核列名合理、
   无重复、类型正确；④ 每个输入 property 都有 `default` 且其 JSON 类型与 `type` 一致
   （array 元素形态合理）；⑤ JSON 用 `python -m json.tool` 或等价方式校验可解析；
-  ⑥ `<输出目录>/description.txt` 已生成且非空（或为占位说明）。
+  ⑥ `<输出目录>/description.txt` 已生成：第 1 行为脚本名、正文非空（或为占位说明）。
 
 ## 已固化的样例（references/examples/）
 
 - `onlyfans-downloader`：单 info 字段输入，无文档化输出 → 输出按用途拟定（5 个下载记录列）；
-  无自定义图标（API 无 `pictureUrl`）。
+  无自定义图标（API 无 `pictureUrl`）；源 actor 已不在商店公开可查，`description.txt` 示例为
+  占位说明（脚本名 + No description available）。
 - `north-carolina-sos-business-search`：11 输入（stringList/switch/number/textarea），
-  25 输出列（取 README `Example output`）；无自定义图标（API 无 `pictureUrl`）。
+  25 输出列（取 README `Example output`）；无自定义图标（API 无 `pictureUrl`）；源 actor
+  已不在商店公开可查，仅保留 schema 样例（无 description.txt）。
 - `crawler-google-places`：39 输入（stringList/requestList/switch/number/select/json/input，
   含 13 个布尔开关；`reviewsStartDate` 接受相对日期故用 input 而非 datepicker），
   68 输出列（取 README `JSON file` 示例）；有图标 → `icon.png`（128×128，下载自 `pictureUrl`）。
 
 上表为 schema 格式参考；按规则 9，**每次正式 run 都会额外生成 `description.txt`**（已固化的
-`crawler-google-places` / `onlyfans-downloader` 样例目录已含 `description.txt` 示意，
-`north-carolina-sos-business-search` 源 actor 已不在商店公开可查，故仅保留 schema 样例）。
+`crawler-google-places` / `onlyfans-downloader` 样例目录已含 `description.txt` 示意——第 1 行
+脚本名（URL 末段去连字符）+ 商店短描述，后者源已下架故为占位说明；`north-carolina-sos-business-search`
+源 actor 已不在商店公开可查，故仅保留 schema 样例）。
 
 新增 actor 时若发现 `.md` 结构与上述样例不同，把新形态补进
 `references/apify-md-structure.md`，保持本 skill 的解析规则可持续演化。

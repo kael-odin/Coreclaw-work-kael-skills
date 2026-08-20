@@ -73,14 +73,41 @@
 ## 其它可用来源（补充，非必需）
 
 - `https://api.apify.com/v2/acts/<owner>~<name>`：返回 actor 元数据（JSON），含
-  `exampleRunInput`（示例输入值，可补 default）、`readmeSummary`、**`pictureUrl`（图标直链）**，
-  但**无 inputSchema 字段**。`~` 路由可用，`/` 路由与 `/input-schema` 子路径 404。
-- **描述来源**：`readmeSummary` 即 `.md` 标题下方简介段的权威来源，落盘为第 4 个交付物
-  `description.txt`（规则 9）。实测（2026-08-18）：不同 actor 的 `readmeSummary` 形态不一致——
-  有短句营销简介（如 "…is a simple yet effective tool that…"），也有以 `## Title` 开头的长摘要
-  （如 Google Maps Scraper / OnlyFans Downloader）；统一取原样，并把开头的 markdown 标题行剥掉。
+  `exampleRunInput`（示例输入值，可补 default）、`data.description`（商店短描述）、
+  `readmeSummary`（长 README 摘要）、**`pictureUrl`（图标直链）**，但**无 inputSchema 字段**。
+  `~` 路由可用，`/` 路由与 `/input-schema` 子路径 404。
+- **描述来源（2026-08-20 修订）**：商店短描述（营销语）的权威来源是 **`data.description`**，
+  实测为短句、与商店页标题下方文案逐字一致（如 mega-downloader-bypass-limit）。缺失时回退
+  `.md` 头部 H1 标题行下方、`- **URL**:` 列表之前的第一段（与 `data.description` 同文）。
+  **`readmeSummary` 不是描述来源**——它是长 README 摘要（常以 `## 标题` 开头），2026-08-20
+  以 6 actor 实测与 `data.description` 内容不同，用它会抓成长摘要（旧规则 9 曾用它，已废止）。
 - **图标来源**：`pictureUrl` 是 S3 直链，实测为 PNG 128×128；**仅部分 actor 有**
   （2026-08-14 实测：crawler-google-places 有，onlyfans-downloader / north-carolina-sos-business-search
   无）。无自定义图标的 actor 页面用通用占位图 `https://apify.com/img/store/actor_picture.svg`，
   **不要下载占位图冒充该 actor 的图标**——无 `pictureUrl` 时跳过并注明即可。
 - 官方 OpenAPI 定义 URL 在 `.md` 末尾 `## OpenAPI specification` 给出（per-build，随版本变）。
+
+## 2026-08-20 新形态补充（实测 6 actor：mega-downloader-bypass-limit / trustmrr-startup-scraper /
+nysed-professional-license-search（已下架） / instagram-comment-bot / tiktok-comments-scraper /
+e-commerce-scraping-tool）
+
+- **README 正文可能有重复的字段说明段**：`mega` 有「Input ⌨️ / Fields」表、`e-commerce` 有带
+  「Required: Yes」列的搜索参数表。可与 input Schema 段交叉验证，**但字段名可能对不上**
+  （e-commerce 表里写 `SearchEngineSearchKeyword`，schema 字段实际叫 `searchEngineKeyword`），
+  不能直接按表名匹配；required 推断仍以描述文字为准。
+- **部分 actor 完全没有 `# Actor output Schema` 段**（trustmrr）——输出示例只在 README
+  （`### Output`）。提取输出的主逻辑不变：先 README 正文，缺段不是异常。
+- **README 里可能有多个 JSON 块，需区分「数据集行形状」与「视图/包装结构」**：e-commerce 同时有
+  `{product, sellers}` 的 "Output schema" 视图块和 3 条真实行的 "JSON view" 块——后者才是输出列
+  来源（标题含 "Example of" / "JSON view" 等字样更可信）。
+- **README 的输入示例块可能不止一个且取值冲突**：tiktok 在 canonical `## Actor input object example`
+  之前还有 README `### Input` 里的示例（`maxRepliesPerComment: 2` vs API 示例 `0` vs 输入示例缺失）。
+  default 取舍优先级：`## Actor input object example` 优先；该字段缺席时按语义取关闭值并注明。
+- **README 描述的功能可能超出实际 schema**（instagram：README 提 hashtag 搜索和密码登录，输入段
+  只有 `cookies`/`comments`/`post_urls`）——以 `# Actor input Schema` 段为准，README 功能差异
+  在交付说明里注明即可。
+- **错误记录可能与正常记录混在同一数据集**（tiktok 的 `{url, input, error, errorCode}` 第二记录
+  形态）——不并入主输出列，说明里注明。
+- **actor 会下架**：nysed-professional-license-search 于 2026-08-20 实测 API 与 `.md` 双 404
+  （`{"error":{"type":"record-not-found",...}}` / `{"error":"Missing actor"}`），但搜索引擎仍缓存其
+  子页面。下架 actor 不要用缓存页臆造字段，按规则 1 报告不可用并跳过。
